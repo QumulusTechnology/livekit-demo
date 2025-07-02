@@ -18,3 +18,12 @@ spec:
       - http01:
           ingress:
             class: nginx
+            ingressTemplate:
+              metadata:
+                annotations:
+                  nginx.ingress.kubernetes.io/rewrite-target: /
+              spec:
+                rules:
+                - http:
+                    paths:
+                    - pathType: Prefix
