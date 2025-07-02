@@ -87,6 +87,10 @@ alloy-metrics:
 alloy-singleton:
   enabled: true
 
+# Alloy logs instance for pod logs
+alloy-logs:
+  enabled: true
+
 # Global configuration for secrets
 global:
   secrets:
