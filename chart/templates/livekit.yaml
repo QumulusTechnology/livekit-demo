@@ -8,6 +8,10 @@ metadata:
 spec:
   project: core-services
   sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
     - repoURL: https://helm.livekit.io
       targetRevision: 1.9.0
       chart: livekit-server
