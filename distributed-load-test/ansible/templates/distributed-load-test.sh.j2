@@ -1,0 +1,129 @@
+#!/bin/bash
+# Distributed load test script for VM {{ vm_index }}
+# Based on multi-room-load-test.sh but runs single room per VM
+
+set -e
+
+# Configuration
+KUBECONFIG="${KUBECONFIG:-~/livekit-demo-k8s.config}"
+URL="{{ livekit_url }}"
+API_KEY="{{ livekit_api_key }}"
+API_SECRET="{{ livekit_api_secret }}"
+DURATION="{{ test_duration }}"
+VIDEO_RESOLUTION="{{ video_resolution }}"
+TIMESTAMP="{{ ansible_date_time.epoch }}"
+VM_INDEX="{{ vm_index }}"
+ROOM="distributed-loadtest-vm${VM_INDEX}-${TIMESTAMP}"
+RESULTS_DIR="/home/ubuntu/load-test/results"
+
+echo "=== Distributed Load Test - VM ${VM_INDEX} ==="
+echo "Room: $ROOM"
+echo "Duration: $DURATION"
+echo "Video Resolution: $VIDEO_RESOLUTION (medium bandwidth)"
+echo "Participants: {{ participants_per_vm }} (10 video publishers, 20 audio publishers, 70 subscribers)"
+echo ""
+
+# Start network monitoring
+echo "Starting network monitoring..."
+INTERFACE=$(ip route | grep default | awk '{print $5}' | head -1)
+(while true; do
+    RX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/rx_bytes)
+    TX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/tx_bytes)
+    RX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/rx_packets)
+    TX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/tx_packets)
+    RX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/rx_dropped)
+    TX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/tx_dropped)
+    echo "$(date +%s),$RX_BYTES,$TX_BYTES,$RX_PACKETS,$TX_PACKETS,$RX_DROPPED,$TX_DROPPED" >> "$RESULTS_DIR/network-stats.csv"
+    sleep 5
+done) &
+MONITOR_PID=$!
+
+# Record start metrics
+START_TIME=$(date +%s)
+START_RX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/rx_bytes)
+START_TX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/tx_bytes)
+START_RX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/rx_packets)
+START_TX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/tx_packets)
+START_RX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/rx_dropped)
+START_TX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/tx_dropped)
+
+echo "Starting load test for $ROOM..."
+
+# Run load test with same distribution as multi-room-load-test.sh
+lk load-test \
+  --url "$URL" \
+  --api-key "$API_KEY" \
+  --api-secret "$API_SECRET" \
+  --room "$ROOM" \
+  --video-publishers 10 \
+  --audio-publishers 20 \
+  --subscribers 70 \
+  --video-resolution "$VIDEO_RESOLUTION" \
+  --duration "$DURATION" 2>&1 | tee "$RESULTS_DIR/livekit-output.log"
+
+# Stop monitoring
+kill $MONITOR_PID 2>/dev/null || true
+
+# Record end metrics
+END_TIME=$(date +%s)
+END_RX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/rx_bytes)
+END_TX_BYTES=$(cat /sys/class/net/$INTERFACE/statistics/tx_bytes)
+END_RX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/rx_packets)
+END_TX_PACKETS=$(cat /sys/class/net/$INTERFACE/statistics/tx_packets)
+END_RX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/rx_dropped)
+END_TX_DROPPED=$(cat /sys/class/net/$INTERFACE/statistics/tx_dropped)
+
+# Calculate metrics
+DURATION_SECONDS=$((END_TIME - START_TIME))
+RX_BYTES=$((END_RX_BYTES - START_RX_BYTES))
+TX_BYTES=$((END_TX_BYTES - START_TX_BYTES))
+RX_PACKETS=$((END_RX_PACKETS - START_RX_PACKETS))
+TX_PACKETS=$((END_TX_PACKETS - START_TX_PACKETS))
+RX_DROPPED=$((END_RX_DROPPED - START_RX_DROPPED))
+TX_DROPPED=$((END_TX_DROPPED - START_TX_DROPPED))
+TOTAL_PACKETS=$((RX_PACKETS + TX_PACKETS))
+TOTAL_DROPPED=$((RX_DROPPED + TX_DROPPED))
+
+if [ $TOTAL_PACKETS -gt 0 ]; then
+    PACKET_LOSS=$(echo "scale=4; $TOTAL_DROPPED * 100 / $TOTAL_PACKETS" | bc)
+else
+    PACKET_LOSS=0
+fi
+
+RX_MBPS=$(echo "scale=2; $RX_BYTES * 8 / 1000000 / $DURATION_SECONDS" | bc)
+TX_MBPS=$(echo "scale=2; $TX_BYTES * 8 / 1000000 / $DURATION_SECONDS" | bc)
+
+# Extract key metrics from LiveKit output
+BANDWIDTH=$(grep -E "Total.*mbps" "$RESULTS_DIR/livekit-output.log" | tail -1 | grep -oE "[0-9]+\.[0-9]+mbps" | head -1 || echo "N/A")
+CONNECTIONS=$(grep -E "Total.*/" "$RESULTS_DIR/livekit-output.log" | tail -1 | grep -oE "[0-9]+/[0-9]+" | head -1 || echo "N/A")
+
+# Save results
+cat > "$RESULTS_DIR/vm-${VM_INDEX}-metrics.json" << EOF
+{
+  "vm_index": ${VM_INDEX},
+  "room": "$ROOM",
+  "duration_seconds": $DURATION_SECONDS,
+  "network": {
+    "rx_mbps": $RX_MBPS,
+    "tx_mbps": $TX_MBPS,
+    "rx_bytes": $RX_BYTES,
+    "tx_bytes": $TX_BYTES,
+    "packet_loss_percent": $PACKET_LOSS,
+    "total_packets": $TOTAL_PACKETS,
+    "dropped_packets": $TOTAL_DROPPED
+  },
+  "livekit": {
+    "bandwidth": "$BANDWIDTH",
+    "connections": "$CONNECTIONS"
+  },
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+}
+EOF
+
+echo ""
+echo "=== Test Complete for VM ${VM_INDEX} ==="
+echo "Duration: ${DURATION_SECONDS}s"
+echo "Network RX: ${RX_MBPS} Mbps, TX: ${TX_MBPS} Mbps"
+echo "Packet Loss: ${PACKET_LOSS}%"
+echo "Bandwidth: $BANDWIDTH"
+echo "Connections: $CONNECTIONS"

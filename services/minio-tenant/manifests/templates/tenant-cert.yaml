@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: tenant-certmanager-cert
+spec:
+  dnsNames:
+    - 'minio.'
+    - 'minio.minio-tenant.svc'
+    - 'minio.minio-tenant.svc.cluster.local'
+    - '*.minio.minio-tenant.svc.cluster.local'
+    - '*.tenant-hl.minio-tenant.svc.cluster.local'
+    - '*.tenant.minio.minio-tenant.svc.cluster.local'
+  secretName: minio-tls
+  issuerRef:
+    name: minio-tenant-ca-issuer

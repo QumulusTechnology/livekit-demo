@@ -1,0 +1,75 @@
+#!/bin/bash
+# Load test execution script for VM {{ vm_index }}
+
+set -e
+
+CONFIG_FILE="/home/ubuntu/load-test/configs/test-config.json"
+LOG_DIR="/home/ubuntu/load-test/logs"
+RESULT_DIR="/home/ubuntu/load-test/results"
+
+# Read configuration
+URL=$(jq -r '.url' "$CONFIG_FILE")
+API_KEY=$(jq -r '.api_key' "$CONFIG_FILE")
+API_SECRET=$(jq -r '.api_secret' "$CONFIG_FILE")
+ROOM=$(jq -r '.room' "$CONFIG_FILE")
+PUBLISHERS=$(jq -r '.publishers' "$CONFIG_FILE")
+VIDEO_PUBLISHERS=$(jq -r '.video_publishers' "$CONFIG_FILE")
+SUBSCRIBERS=$(jq -r '.subscribers' "$CONFIG_FILE")
+VIDEO_RES=$(jq -r '.video_resolution' "$CONFIG_FILE")
+DURATION=$(jq -r '.duration' "$CONFIG_FILE")
+
+echo "Starting load test on VM {{ vm_index }}"
+echo "Room: $ROOM"
+echo "Publishers: $PUBLISHERS (Video: $VIDEO_PUBLISHERS)"
+echo "Subscribers: $SUBSCRIBERS"
+echo "Duration: $DURATION"
+echo "Video Resolution: $VIDEO_RES"
+echo "----------------------------------------"
+
+# Start timestamp
+START_TIME=$(date +%s)
+
+# Run the load test
+lk load-test \
+  --url "$URL" \
+  --api-key "$API_KEY" \
+  --api-secret "$API_SECRET" \
+  --room "$ROOM" \
+  --publishers "$PUBLISHERS" \
+  --video-publishers "$VIDEO_PUBLISHERS" \
+  --subscribers "$SUBSCRIBERS" \
+  --video-resolution "$VIDEO_RES" \
+  --duration "$DURATION" \
+  --verbose 2>&1 | tee "${LOG_DIR}/livekit-output.log"
+
+# End timestamp
+END_TIME=$(date +%s)
+DURATION_SECONDS=$((END_TIME - START_TIME))
+
+# Extract results from output
+echo "Parsing results..."
+tail -50 "${LOG_DIR}/livekit-output.log" > "${RESULT_DIR}/test-summary.txt"
+
+# Create result JSON
+cat > "${RESULT_DIR}/test-result.json" << EOF
+{
+  "vm_index": {{ vm_index }},
+  "room": "$ROOM",
+  "start_time": $START_TIME,
+  "end_time": $END_TIME,
+  "duration_seconds": $DURATION_SECONDS,
+  "participants": {
+    "publishers": $PUBLISHERS,
+    "video_publishers": $VIDEO_PUBLISHERS,
+    "subscribers": $SUBSCRIBERS,
+    "total": $((PUBLISHERS + SUBSCRIBERS))
+  },
+  "configuration": {
+    "video_resolution": "$VIDEO_RES",
+    "test_duration": "$DURATION"
+  },
+  "exit_code": $?
+}
+EOF
+
+echo "Load test completed on VM {{ vm_index }}"

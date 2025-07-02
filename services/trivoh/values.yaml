@@ -1,0 +1,53 @@
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+# Image configuration
+image:
+  tag: latest
+
+# Environment variables
+env:
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "4000"
+  # LiveKit configuration
+  - name: LIVEKIT_URL
+    # WebSocket URL - should be wss://livekit.<domain>
+    value: "wss://livekit.livekit-demo.cloudportal.app"
+  - name: LIVEKIT_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  - name: LIVEKIT_API_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  # API endpoint
+  - name: API_URL
+    # API URL - should be https://api.<domain>
+    value: "https://api.livekit-demo.cloudportal.app"
+  - name: NEXT_PUBLIC_API_URL
+    # Public API URL - should be https://api.<domain>
+    value: "https://api.livekit-demo.cloudportal.app"
+
+# Prometheus monitoring configuration
+monitoring:
+  enabled: true
+  port: 9091
+  path: /metrics
+
+# Pod annotations for Prometheus scraping
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9091"
+  prometheus.io/path: "/metrics"
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: trivoh
+  interval: 30s
+  scrapeTimeout: 10s

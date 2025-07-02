@@ -1,0 +1,119 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://helm.goharbor.io
+      chart: harbor
+      targetRevision: 1.17.1
+      helm:
+        valueFiles:
+          - $vals/services/harbor/values.yaml
+        valuesObject:
+          expose:
+            type: ingress
+            tls:
+              enabled: true
+              certSource: secret
+              secret:
+                secretName: "harbor-cert"
+            ingress:
+              hosts:
+                core: repo.{{ .Values.domain }}
+              controller: default
+              className: "nginx"
+              annotations:
+                cert-manager.io/cluster-issuer: letsencrypt
+                ingress.kubernetes.io/ssl-redirect: "true"
+                ingress.kubernetes.io/proxy-body-size: "0"
+                nginx.ingress.kubernetes.io/ssl-redirect: "true"
+                nginx.ingress.kubernetes.io/proxy-connect-timeout: "7200"
+                nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+                nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+                nginx.ingress.kubernetes.io/client-body-timeout: "7200"
+                nginx.ingress.kubernetes.io/client-header-timeout: "7200"
+                nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "7200"
+                nginx.ingress.kubernetes.io/keepalive: "7200"
+                nginx.ingress.kubernetes.io/proxy-body-size: "0"
+          externalURL: https://repo.{{ .Values.domain }}
+          existingSecretAdminPasswordKey: password
+          existingSecretAdminPassword: harbor-auth
+          registry:
+            replicas: 1
+          core:
+            replicas: 1
+            # Use ESO-generated secrets
+            existingSecret: harbor-core-eso-secret
+            existingXsrfSecret: harbor-core-eso-secret
+            existingXsrfSecretKey: CSRF_KEY
+          jobservice:
+            # Use ESO-generated secret
+            existingSecret: harbor-jobservice-eso-secret
+            existingSecretKey: JOBSERVICE_SECRET
+          registry:
+            # Use ESO-generated secret
+            existingSecret: harbor-registry-eso-secret
+            existingSecretKey: REGISTRY_HTTP_SECRET
+          database:
+            type: external
+            external:
+              host: "harbor-db-rw.harbor.svc.cluster.local"
+              port: "5432"
+              coreDatabase: "harbor"
+              username: "harbor"
+              existingSecret: "harbor-db-app"
+              sslmode: "disable"
+          persistence:
+            enabled: true
+            resourcePolicy: "keep"
+            persistentVolumeClaim:
+              registry:
+                size: 100Gi
+                accessMode: ReadWriteOnce
+          updateStrategy:
+            type: Recreate
+    
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/harbor
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor
+  syncPolicy:
+    automated:
+      selfHeal: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
+        - /metadata/annotations
+    - group: apps
+      kind: StatefulSet
+      jsonPointers:
+        - /spec/replicas
+        - /metadata/annotations
+        - /spec/volumeClaimTemplates
+    - group: batch
+      kind: Job
+      jsonPointers:
+        - /status
+    - group: ""
+      kind: PersistentVolumeClaim
+      jsonPointers:
+        - /spec/resources
+        - /status

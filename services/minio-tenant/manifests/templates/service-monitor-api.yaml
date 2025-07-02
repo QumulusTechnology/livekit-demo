@@ -1,0 +1,43 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tenant-api-metrics
+  namespace: minio-tenant
+  labels:
+    app: minio
+    component: api-metrics
+spec:
+  selector:
+    matchLabels:
+      v1.min.io/tenant: tenant
+      v1.min.io/service-type: "minio"
+  endpoints:
+  - port: minio-api
+    interval: 30s
+    path: /minio/v2/metrics/cluster
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - minio-tenant
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: tenant-console-metrics
+  namespace: minio-tenant
+  labels:
+    app: minio
+    component: console-metrics
+spec:
+  selector:
+    matchLabels:
+      v1.min.io/tenant: tenant
+      v1.min.io/service-type: "console"
+  endpoints:
+  - port: console-api
+    interval: 30s
+    path: /api/v1/prometheus
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - minio-tenant

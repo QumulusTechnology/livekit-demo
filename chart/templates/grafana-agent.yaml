@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana-agent
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://github.com/grafana/helm-charts.git
+      targetRevision: k8s-monitoring-3.1.0
+      path: charts/agent-operator/crds
+
+    - repoURL: https://github.com/grafana/k8s-monitoring-helm.git
+      targetRevision: k8s-monitoring-3.1.0
+      path: charts/k8s-monitoring
+      helm:
+        valueFiles:
+        - $vals/services/grafana-agent/values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: grafana-agent
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

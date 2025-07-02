@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-livekit-server
+spec:
+  template:
+    spec:
+      containers:
+      - name: livekit-server
+        env:
+        - name: LIVEKIT_TURN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: livekit-server-turn
+              key: password

@@ -1,0 +1,54 @@
+# Standalone Redis for LiveKit Egress without authentication
+apiVersion: v1
+kind: Service
+metadata:
+  name: livekit-egress-redis
+  namespace: livekit
+spec:
+  type: ClusterIP
+  ports:
+    - port: 6379
+      targetPort: 6379
+      protocol: TCP
+  selector:
+    app: livekit-egress-redis
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-egress-redis
+  namespace: livekit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: livekit-egress-redis
+  template:
+    metadata:
+      labels:
+        app: livekit-egress-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        command: ["redis-server"]
+        args: ["--save", "60", "1", "--loglevel", "warning"]
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        livenessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: 6379
+          initialDelaySeconds: 5
+          periodSeconds: 5

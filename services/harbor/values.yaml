@@ -1,0 +1,67 @@
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+# Use proxy images to prevent webhook mutations
+core:
+  image:
+    repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/harbor-core
+    tag: v2.13.1
+  metrics:
+    enabled: false
+    path: /api/v2.0/metrics
+    port: 8001
+
+jobservice:
+  image:
+    repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/harbor-jobservice
+    tag: v2.13.1
+
+registry:
+  registry:
+    image:
+      repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/registry-photon
+      tag: v2.13.1
+  controller:
+    image:
+      repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/harbor-registryctl
+      tag: v2.13.1
+  metrics:
+    enabled: false
+    path: /metrics
+    port: 5001
+
+portal:
+  image:
+    repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/harbor-portal
+    tag: v2.13.1
+
+trivy:
+  image:
+    repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/trivy-adapter-photon
+    tag: v2.13.1
+
+redis:
+  image:
+    repository: repo.master.cloudportal.app/dockerhub-proxy/goharbor/redis-photon
+    tag: v2.13.1
+
+# Harbor Prometheus metrics configuration
+metrics:
+  enabled: false
+  core:
+    path: /api/v2.0/metrics
+    port: 8001
+  registry:
+    path: /metrics
+    port: 8001
+  
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  namespace: harbor
+  interval: 30s
+  path: /api/v2.0/metrics
+
+# Harbor URL for docker registry secret
+# This is constructed as repo.<domain> in the template
+harborURL: "repo.livekit-demo.cloudportal.app"

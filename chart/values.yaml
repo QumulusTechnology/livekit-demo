@@ -1,0 +1,52 @@
+# Default values for core-services.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+letsencrypt_email: "livekit-demo@letsencrypt.cloudportal.app"
+domain: "livekit-demo.cloudportal.app"
+tenant: "master"
+
+# Global configuration for all services
+global:
+  domain: "livekit-demo.cloudportal.app"
+  registry:
+    domain: "repo.livekit-demo.cloudportal.app"
+  masterRegistry:
+    domain: "repo.master.cloudportal.app"
+  
+  # Service endpoints
+  services:
+    livekit:
+      namespace: livekit
+      serviceName: livekit-server
+      wsUrl: "wss://livekit.livekit-demo.cloudportal.app"
+      apiUrl: "https://livekit.livekit-demo.cloudportal.app"
+    redis:
+      namespace: redis
+      serviceName: redis-redis-cluster
+      clusterService: redis-redis-cluster-headless
+      port: 6379
+    minio:
+      namespace: minio-tenant
+      serviceName: minio
+      port: 80
+    trivoh:
+      apiUrl: "https://api.livekit-demo.cloudportal.app"
+
+# ArgoCD application configuration
+spec:
+  project: core-services
+  source:
+    repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      allowEmpty: true
+      prune: false
+      selfHeal: true
+
+# Application enablement flags
+harborContainerWebhook:
+  enabled: true

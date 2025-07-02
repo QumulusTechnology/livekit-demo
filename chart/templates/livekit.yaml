@@ -1,0 +1,45 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: livekit
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: core-services
+  source:
+    repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+    targetRevision: main
+    path: services/livekit
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: livekit
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true
+      - ServerSideApply=true
+  ignoreDifferences:
+  - group: networking.k8s.io
+    kind: Ingress
+    jsonPointers:
+    - /spec
+    - /metadata/annotations
+    - /metadata/finalizers
+    - /status
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+    - /metadata/annotations
+  - group: ""
+    kind: Service
+    jsonPointers:
+    - /spec/clusterIP
+    - /spec/clusterIPs
+    - /metadata/annotations

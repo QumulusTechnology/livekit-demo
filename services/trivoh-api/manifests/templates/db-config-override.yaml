@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: db-config-override
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  db.js: |
+    const { Sequelize } = require("sequelize");
+    
+    const host = process.env.DB_HOST || 'mysql';
+    const user = process.env.DB_USER || 'trivoh_user';
+    const password = process.env.DB_PASS;
+    const port = process.env.DB_PORT || 3306;
+    const database = process.env.DB_NAME || 'trivoh';
+    
+    console.log(`Connecting to MySQL at ${host}:${port} database ${database}`);
+    
+    // Force MySQL dialect - never use SQLite
+    const sequelize = new Sequelize(database, user, password, {
+      host,
+      port,
+      logging: false,
+      dialect: 'mysql', // Hard-coded to mysql
+      dialectOptions: {
+        timezone: "+00:00",
+      },
+      timezone: "+00:00",
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      }
+    });
+    
+    (async () => {
+      try {
+        await sequelize.authenticate();
+        console.log("MySQL connection has been established successfully.");
+      } catch (error) {
+        console.error("Unable to connect to MySQL database:", error);
+        // Exit if we can't connect to MySQL
+        process.exit(1);
+      }
+    })();
+    
+    module.exports = sequelize;
+    global.sequelize = sequelize;

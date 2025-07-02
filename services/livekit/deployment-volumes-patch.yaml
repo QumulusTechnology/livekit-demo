@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-livekit-server
+spec:
+  template:
+    spec:
+      volumes:
+      - name: livekit-keys
+        secret:
+          secretName: livekit-keys-file
+          defaultMode: 0600
+          items:
+          - key: keys.yaml
+            path: keys.yaml
+      containers:
+      - name: livekit-server
+        volumeMounts:
+        - name: livekit-keys
+          mountPath: /etc/livekit
+          readOnly: true

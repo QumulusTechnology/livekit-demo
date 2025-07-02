@@ -1,0 +1,183 @@
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+replicaCount: 10  # Limited by host networking (1 per node)
+
+# Use direct image instead of Harbor proxy for now
+image:
+  repository: livekit/livekit-server
+  tag: v1.9.0
+
+# ESO-generated secrets: Use livekit-keys-file secret created by External Secrets Operator
+storeKeysInSecret:
+  enabled: false
+
+livekit:
+  # API keys loaded from mounted file
+  key_file: /etc/livekit/keys.yaml
+  prometheus_port: 6789
+  port: 7880
+  log_level: error
+  development: false
+  rtc:
+    tcp_port: 7881
+    port_range_start: 50000
+    port_range_end: 60000
+    use_external_ip: true
+    # Ultra-high concurrency optimizations
+    ice_candidate_pool_size: 30  # Increased for better connection handling
+    turn_server_timeout: 30s  # Increased timeout for stability
+    tcp_listen_port: 7881
+    use_ice_lite: true
+    # Advanced network optimizations for 1000+ participants
+    stun_servers:
+      - global.stun.twilio.com:3478
+      - stun.l.google.com:19302
+    # TURN server configuration
+    turn_servers:
+      # TURN host should be turn.<domain>
+      - host: turn.livekit-demo.cloudportal.app
+        port: 3478
+        protocol: udp
+        username: livekit
+        credential: ${LIVEKIT_TURN_PASSWORD}
+    # Connection optimizations
+    max_track_subscribers: 2000  # Increased for more subscribers
+    subscriber_bandwidth_limit: 25000000  # 25Mbps per subscriber for better scaling
+  redis:
+    cluster_addresses:
+      - redis-cluster-0.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-1.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-2.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-3.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-4.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-5.redis-cluster.livekit.svc.cluster.local:6379
+    # Redis optimizations for high concurrency
+    pool_size: 30  # Increased connection pool
+    max_idle: 20  # More idle connections for burst traffic
+  # API keys now managed by ESO - no hardcoded values needed
+  # S3/MinIO storage configuration for recordings
+  s3:
+    endpoint: http://minio.minio-tenant.svc.cluster.local:80
+    bucket: livekit-recordings
+    region: us-east-1
+    force_path_style: true
+    access_key: ${MINIO_ACCESS_KEY}
+    secret_key: ${MINIO_SECRET_KEY}
+  # Ultra-performance optimizations
+  log_level: error  # Minimal logging for maximum performance
+  development: false
+  # Room-level optimizations
+  room:
+    max_participants: 1000
+    participant_timeout: 60s
+    track_timeout: 30s
+  
+  # Enable egress for recording and streaming
+  egress:
+    enabled: true
+
+# LoadBalancer configuration - set to disable to prevent Helm Ingress creation
+loadBalancer:
+  type: "disable"
+
+# Autoscaling enabled with host networking constraints (max 1 pod per node)
+autoscaling:
+  enabled: true
+  minReplicas: 10
+  maxReplicas: 17  # Limited by number of nodes due to host networking
+  targetCPUUtilizationPercentage: 50  # Lower threshold for earlier scaling
+  targetMemoryUtilizationPercentage: 60  # Lower threshold for earlier scaling
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # Slower scale-down to handle traffic spikes
+      policies:
+      - type: Percent
+        value: 5  # Very conservative scale-down
+        periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Instant scale-up
+      policies:
+      - type: Percent
+        value: 200  # Double capacity immediately
+        periodSeconds: 10
+      - type: Pods
+        value: 10  # Add 10 pods at once
+        periodSeconds: 10
+
+# Resource allocation for container networking
+resources:
+  limits:
+    cpu: 4000m     # 4 cores per pod
+    memory: 8Gi    # 8GB RAM per pod
+  requests:
+    cpu: 2000m     # 2 cores guaranteed
+    memory: 4Gi    # 4GB guaranteed
+
+# Environment variables from MinIO secret
+extraEnvFrom:
+  - secretRef:
+      name: livekit-minio-credentials
+
+# Priority and affinity - disable for now to avoid scheduling issues
+# priorityClassName: livekit-high-priority
+
+# Remove node selector to allow scheduling on any node
+# nodeSelector:
+#   workload-type: livekit-compute
+
+# Pod anti-affinity for better distribution (not required without host networking)
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - livekit-server
+        topologyKey: kubernetes.io/hostname
+
+# Enable host networking for WebRTC (required for LiveKit)
+podHostNetwork: true
+
+# Enable host ports for WebRTC (required with host networking)
+hostPort:
+  enable: true
+  rtc_tcp: 7881
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 7880
+  rtc:
+    tcp: 7881
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 8
+
+serviceMonitor:
+  create: true
+
+# Ingress configuration - using custom ingress.yaml via Kustomize
+ingress:
+  enabled: false
+
+# Additional annotations for performance
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "6789"
+  scheduler.alpha.kubernetes.io/critical-pod: ""
+
+# TURN server configuration
+turn:
+  enabled: true
+  # TURN domain should be turn.<domain>
+  domain: turn.livekit-demo.cloudportal.app
+  secretName: livekit-server-turn
+  # TLS disabled - using UDP only
+  # tls_cert: livekit-server-tls

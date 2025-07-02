@@ -1,0 +1,44 @@
+# MinIO Operator configuration
+# Only include values that differ from defaults
+
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+# Install CRDs
+installCRDs: true
+
+# Console configuration for MinIO operator UI
+console:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    # Host should be minio-console.<domain>
+    host: minio-console.livekit-demo.cloudportal.app
+    tls:
+      - secretName: minio-console-tls
+        hosts:
+          - minio-console.livekit-demo.cloudportal.app
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+
+# Enable Prometheus monitoring for MinIO operator
+monitoring:
+  namespace: minio-operator
+  
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: minio-operator
+  additionalLabels: {}
+
+# Enable metrics collection
+prometheusRule:
+  enabled: true
+
+# Operator environment variables
+env:
+  - name: OPERATOR_STS_ENABLED
+    value: "on"
+  - name: OPERATOR_STS_AUTO_TLS_ENABLED
+    value: "off"

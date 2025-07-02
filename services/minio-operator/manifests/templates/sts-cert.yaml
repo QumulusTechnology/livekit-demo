@@ -1,0 +1,31 @@
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sts-cert
+  namespace: minio-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  secretName: sts-tls
+  dnsNames:
+    - sts
+    - sts.minio-operator
+    - sts.minio-operator.svc
+    - sts.minio-operator.svc.cluster.local
+  issuerRef:
+    name: minio-operator-ca-issuer
+    kind: Issuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: minio-operator-ca-issuer
+  namespace: minio-operator
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  ca:
+    secretName: operator-ca-tls

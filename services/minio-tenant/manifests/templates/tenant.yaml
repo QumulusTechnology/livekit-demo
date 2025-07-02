@@ -1,0 +1,68 @@
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: tenant
+  namespace: minio-tenant
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  configuration:
+    name: tenant-env-configuration
+  exposeServices:
+    console: false
+    minio: false
+  features:
+    domains:
+      console: https://{{ .Values.ingress.console.host }}
+      minio:
+      - https://{{ .Values.ingress.api.host }}
+  env:
+  - name: MINIO_PROMETHEUS_AUTH_TYPE
+    value: public
+  image: {{ .Values.tenant.image }}
+  mountPath: /export
+  pools:
+  - containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsGroup: {{ .Values.tenant.security.runAsGroup }}
+      runAsNonRoot: true
+      runAsUser: {{ .Values.tenant.security.runAsUser }}
+      seccompProfile:
+        type: RuntimeDefault
+    name: pool-0
+    resources:
+      requests:
+        cpu: {{ .Values.tenant.resources.requests.cpu | quote }}
+        memory: {{ .Values.tenant.resources.requests.memory }}
+    runtimeClassName: ""
+    securityContext:
+      fsGroup: {{ .Values.tenant.security.fsGroup }}
+      fsGroupChangePolicy: OnRootMismatch
+      runAsGroup: {{ .Values.tenant.security.runAsGroup }}
+      runAsNonRoot: true
+      runAsUser: {{ .Values.tenant.security.runAsUser }}
+    servers: {{ .Values.tenant.storage.servers }}
+    volumeClaimTemplate:
+      metadata:
+        name: data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.tenant.storage.storageSize }}
+      status: {}
+    volumesPerServer: {{ .Values.tenant.storage.volumesPerServer }}
+  requestAutoCert: false
+  externalCertSecret:
+  - name: minio-tls
+    type: cert-manager.io/v1
+  users:
+  - name: tenant-user-0
+  buckets:
+  {{- range .Values.buckets }}
+  - name: {{ .name | quote }}
+  {{- end }}

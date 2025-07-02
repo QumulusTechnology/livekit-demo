@@ -1,0 +1,44 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: livekit-egress
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "3"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://helm.livekit.io
+      chart: egress
+      targetRevision: 1.8.4
+      helm:
+        valueFiles:
+          - $vals/services/livekit-egress/values.yaml
+        valuesObject:
+          global:
+            services:
+              livekit:
+                wsUrl: {{ printf "wss://livekit.%s" .Values.global.domain | quote }}
+              redis:
+                namespace: {{ .Values.global.services.redis.namespace | quote }}
+                serviceName: {{ .Values.global.services.redis.serviceName | quote }}
+                clusterService: {{ .Values.global.services.redis.clusterService | quote }}
+                port: {{ .Values.global.services.redis.port }}
+              minio:
+                namespace: {{ .Values.global.services.minio.namespace | quote }}
+                serviceName: {{ .Values.global.services.minio.serviceName | quote }}
+                port: {{ .Values.global.services.minio.port }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: livekit
+  syncPolicy:
+    automated:
+      allowEmpty: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true

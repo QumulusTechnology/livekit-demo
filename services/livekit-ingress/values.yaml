@@ -1,0 +1,124 @@
+# LiveKit Ingress configuration
+replicaCount: 8
+
+# Suggested value for gracefully terminate the pod: 3 hours
+terminationGracePeriodSeconds: 10800
+
+# LiveKit Ingress server configuration optimized for 1000+ participants
+ingress:
+  # API credentials from Kubernetes secret
+  api_key_secret:
+    name: livekit-keys-file
+    key: keys.yaml
+  api_secret_secret:
+    name: livekit-keys-file
+    key: keys.yaml
+  # Connection to LiveKit server
+  ws_url: ws://livekit-livekit-server.livekit.svc.cluster.local:7880
+  # Logging configuration
+  logging:
+    level: info
+  # Port configuration
+  health_port: 7888
+  prometheus_port: 7889
+  http_relay_port: 9090
+  rtmp_port: 1935
+  whip_port: 8080
+  # RTC configuration
+  rtc_config:
+    use_external_ip: true
+    udp_port: 7885
+  # Redis configuration - Using shared Redis cluster in livekit namespace
+  # No authentication required
+  redis:
+    address: redis-cluster-svc.livekit.svc.cluster.local:6379
+  # CPU cost configuration based on sample
+  cpu_cost:
+    rtmp_cpu_cost: 2.0
+    whip_cpu_cost: 2.0
+    whip_bypass_transcoding_cpu_cost: 0.1
+  # Service type configuration
+  serviceType: LoadBalancer
+
+# Note: This helm chart doesn't support Kubernetes Ingress resources
+# The service is exposed via LoadBalancer type service on ports 1935 (RTMP), 7888 (HTTP), 8080 (WHIP)
+
+# Ultra-aggressive autoscaling for 1000+ participants
+autoscaling:
+  enabled: true
+  minReplicas: 8
+  maxReplicas: 32  # Increased capacity
+  targetCPUUtilizationPercentage: 55  # Lower threshold
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 15
+
+# Optimized resource allocation
+resources:
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+  limits:
+    cpu: 3000m
+    memory: 6Gi
+
+
+# Priority class for ingress workloads
+# priorityClassName: livekit-medium-priority
+
+# Node affinity for compute-optimized nodes
+# nodeSelector:
+#   workload-type: livekit-compute
+
+# Pod anti-affinity for distribution
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - livekit-ingress
+        topologyKey: kubernetes.io/hostname
+
+# Additional service annotations if needed
+service:
+  annotations:
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "tcp"
+
+# Enhanced pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "7889"
+  prometheus.io/path: "/metrics"
+  scheduler.alpha.kubernetes.io/critical-pod: ""
+
+# Security context for performance
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  capabilities:
+    add:
+    - NET_ADMIN
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2

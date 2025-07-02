@@ -1,0 +1,33 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: mimir
+spec:
+  valuesFrom:
+  - targetPath: "basicAuthUser"
+    valueFrom:
+      secretKeyRef:
+        name: "grafana-datasource-credentials"
+        key: "mimir_username"
+  - targetPath: "secureJsonData.basicAuthPassword"
+    valueFrom:
+      secretKeyRef:
+        name: "grafana-datasource-credentials"
+        key: "mimir_password"
+  instanceSelector:
+    matchLabels:
+      cluster_type: "management"
+  datasource:
+    name: Mimir
+    type: prometheus
+    access: proxy
+    url: https://mimir.{{ .Values.domain }}/prometheus
+    basicAuthUser: ${mimir_username}
+    basicAuth: true
+    isDefault: true
+    jsonData:
+      manageAlerts: true
+      httpHeaderName1: X-Scope-OrgID
+    secureJsonData:
+      basicAuthPassword : ${mimir_password}
+      httpHeaderValue1: {{ .Values.tenant }}

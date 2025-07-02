@@ -1,0 +1,50 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Helm chart for LiveKit server
+helmCharts:
+- name: livekit-server
+  repo: https://helm.livekit.io
+  version: 1.9.0
+  releaseName: livekit
+  namespace: livekit
+  valuesFile: values.yaml
+
+# Additional custom resources
+resources:
+# Core LiveKit resources
+- turn-service.yaml
+# - turn-tls-certificate.yaml  # Disabled - using UDP TURN only
+- ws-ingress.yaml
+# External Secrets configuration
+- external-secrets.yaml
+- minio-credentials.yaml
+- turn-credentials.yaml
+- clustersecretstore.yaml
+# Performance and optimization
+- priority-classes.yaml
+- performance-config.yaml
+- connection-optimizer.yaml
+# Jobs
+- node-tuning-job.yaml
+# Redis cluster for LiveKit services
+- redis-cluster.yaml
+
+# Patches to modify Helm-generated resources
+patches:
+- path: deployment-volumes-patch.yaml
+  target:
+    kind: Deployment
+    name: livekit-livekit-server
+- path: configmap-patch.yaml
+  target:
+    kind: ConfigMap
+    name: livekit-livekit-server
+- path: service-patch.yaml
+  target:
+    kind: Service
+    name: livekit-livekit-server
+- path: deployment-turn-patch.yaml
+  target:
+    kind: Deployment
+    name: livekit-livekit-server

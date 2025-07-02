@@ -1,0 +1,7 @@
+# Additional resources for MinIO operator
+
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+ingress:
+  enabled: true

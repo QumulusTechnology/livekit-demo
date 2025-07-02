@@ -1,0 +1,84 @@
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+replicaCount: 2
+
+image:
+  repository: repo.livekit-demo.cloudportal.app/livekit-demo/trivoh
+  pullPolicy: Always
+  tag: latest
+
+imagePullSecrets:
+  - name: harbor-registry
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 4000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "trivoh"
+  hosts:
+    - host: trivoh.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - trivoh.livekit-demo.cloudportal.app
+      secretName: trivoh-tls
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2Gi
+  requests:
+    cpu: 250m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Environment variables for NextJS
+env:
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "4000"
+  # LiveKit configuration
+  - name: LIVEKIT_URL
+    value: "wss://livekit.livekit-demo.cloudportal.app"
+  - name: LIVEKIT_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  - name: LIVEKIT_API_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  # API endpoint for trivoh-api
+  - name: API_URL
+    value: "https://api.livekit-demo.cloudportal.app"

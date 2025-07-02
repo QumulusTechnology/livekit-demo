@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trivoh-api-server-override
+  namespace: trivoh-api
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  server.js: |
+    const cluster = require("cluster");
+    const { setupMaster } = require("@socket.io/sticky");
+    const { setupPrimary } = require("@socket.io/cluster-adapter");
+
+    // Use environment variable to limit workers, default to 2
+    const maxWorkers = parseInt(process.env.WORKER_PROCESSES || process.env.WEB_CONCURRENCY || '2', 10);
+    const cpuCount = require("os").cpus().length;
+    const numCPUs = process.env.NODE_ENV === "production"
+      ? Math.min(maxWorkers, cpuCount)
+      : 1;
+
+    console.log(`System CPUs: ${cpuCount}, Using workers: ${numCPUs}`);
+
+    cluster.setupPrimary({
+      exec: "app.js",
+    });
+    setupMaster(cluster);
+    setupPrimary();
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    cluster.on("exit", (worker) => {
+      console.log(`Worker ${worker.process.pid} has been killed`);
+      console.log("Starting another worker");
+      cluster.fork();
+    });

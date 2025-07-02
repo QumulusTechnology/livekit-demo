@@ -1,0 +1,18 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: minio-tenant-ca-certificate
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  isCA: true
+  commonName: minio-tenant-ca
+  secretName: minio-tenant-ca-tls
+  duration: 70128h0m0s
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+    group: cert-manager.io

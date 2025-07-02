@@ -1,0 +1,17 @@
+{
+  "vm_index": {{ vm_index }},
+  "hostname": "{{ ansible_hostname }}",
+  "ip_address": "{{ ansible_default_ipv4.address }}",
+  "test_status": "{{ test_status }}",
+  "test_duration_seconds": {{ duration }},
+  "system_info": {
+    "cpu_count": {{ ansible_processor_vcpus }},
+    "memory_mb": {{ ansible_memtotal_mb }},
+    "os": "{{ ansible_distribution }} {{ ansible_distribution_version }}"
+  },
+  "network_info": {
+    "interface": "{{ ansible_default_ipv4.interface }}",
+    "packet_loss_percent": "{{ packet_loss.stdout | default('0.00') }}"
+  },
+  "timestamp": "{{ ansible_date_time.iso8601 }}"
+}

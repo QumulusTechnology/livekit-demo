@@ -1,0 +1,19 @@
+# Certificate for TURN server TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: livekit-server-tls
+  namespace: livekit
+spec:
+  secretName: livekit-server-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  dnsNames:
+  - turn.livekit-demo.cloudportal.app
+  # Additional configuration for TURN compatibility
+  usages:
+  - digital signature
+  - key encipherment
+  - server auth
+  - client auth

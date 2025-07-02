@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: harbor-container-webhook
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://indeedeng.github.io/harbor-container-webhook
+      chart: harbor-container-webhook
+      targetRevision: v0.5.0
+      helm:
+        valueFiles:
+          - $vals/services/harbor-container-webhook/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: harbor-container-webhook
+  syncPolicy:
+    automated:
+      allowEmpty: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - RespectIgnoreDifferences=true
+  ignoreDifferences:
+  - group: apps
+    kind: Deployment
+    name: harbor-container-webhook
+    jsonPointers:
+    - /spec/replicas
+    - /metadata/annotations
+    - /spec/template/metadata/annotations
+    - /spec/template/spec/priorityClassName
+    - /spec/template/spec/securityContext
+    - /spec/template/spec/containers/0/securityContext
+  - group: admissionregistration.k8s.io
+    kind: MutatingWebhookConfiguration
+    jsonPointers:
+    - /webhooks/0/clientConfig/caBundle

@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prometheus-crd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://prometheus-community.github.io/helm-charts
+      targetRevision: 14.0.0
+      chart: prometheus-operator-crds
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: grafana-agent
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - Replace=true
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: apiextensions.k8s.io
+      kind: CustomResourceDefinition
+      jsonPointers:
+        - /metadata/annotations
+        - /spec/conversion
+        - /status

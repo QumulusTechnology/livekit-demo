@@ -1,0 +1,86 @@
+---
+- name: Prepare Load Test Environment
+  hosts: load_test_vms
+  become: no
+  gather_facts: yes
+  
+  vars_files:
+    - ../test-config.yml
+  
+  tasks:
+    - name: Load LiveKit credentials
+      delegate_to: localhost
+      run_once: true
+      shell: |
+        kubectl --kubeconfig="{{ lookup('env', 'HOME') }}/livekit-demo-k8s.config" \
+          get secret livekit-keys-file -n livekit -o jsonpath='{.data.keys\.yaml}' | base64 -d
+      register: keys_yaml
+      changed_when: false
+      
+    - name: Extract API credentials
+      delegate_to: localhost
+      run_once: true
+      set_fact:
+        livekit_api_key: "{{ keys_yaml.stdout.split(':')[0] | trim }}"
+        livekit_api_secret: "{{ keys_yaml.stdout.split(':')[1] | trim }}"
+      
+    - name: Verify credentials loaded
+      delegate_to: localhost
+      run_once: true
+      debug:
+        msg: "API Key loaded: {{ livekit_api_key[:10] }}..."
+      
+    - name: Create distributed load test script
+      template:
+        src: ../templates/distributed-load-test.sh.j2
+        dest: /home/ubuntu/load-test/scripts/run-load-test.sh
+        mode: '0755'
+      
+    - name: Create network monitoring script
+      copy:
+        content: |
+          #!/bin/bash
+          OUTPUT_FILE="/home/ubuntu/load-test/metrics/network-stats.txt"
+          INTERFACE="ens3"  # Adjust if different
+          
+          echo "Timestamp,RX_packets,TX_packets,RX_bytes,TX_bytes,RX_dropped,TX_dropped" > "$OUTPUT_FILE"
+          
+          while true; do
+            TIMESTAMP=$(date +%s)
+            STATS=$(cat /proc/net/dev | grep "$INTERFACE" | awk '{print $2","$10","$3","$11","$4","$12}')
+            echo "$TIMESTAMP,$STATS" >> "$OUTPUT_FILE"
+            sleep 10
+          done
+        dest: /home/ubuntu/load-test/scripts/monitor-network.sh
+        mode: '0755'
+      
+    - name: Clear any previous test results
+      file:
+        path: "/home/ubuntu/load-test/{{ item }}"
+        state: absent
+      with_items:
+        - logs
+        - results
+        - metrics
+      
+    - name: Recreate test directories
+      file:
+        path: "/home/ubuntu/load-test/{{ item }}"
+        state: directory
+        mode: '0755'
+      with_items:
+        - logs
+        - results
+        - metrics
+      
+    - name: Test connectivity to LiveKit
+      uri:
+        url: "{{ livekit_url | replace('wss://', 'https://') }}"
+        method: GET
+        validate_certs: yes
+        status_code: [200, 404, 426]  # 426 = Upgrade Required (expected for WebSocket)
+      register: connectivity_test
+      
+    - name: Display connectivity test result
+      debug:
+        msg: "LiveKit endpoint accessible: {{ connectivity_test.status }}"

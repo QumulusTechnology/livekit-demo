@@ -1,0 +1,50 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-state-metrics-alerts
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec: 
+  groups:
+    - name: kube-state-metrics
+      rules:
+        - alert: KubeStateMetricsListErrors
+          expr: |-
+            (sum by (cluster) (rate(kube_state_metrics_list_total{job="integrations/kubernetes/kube-state-metrics",result="error"}[5m])) / sum by (cluster) (rate(kube_state_metrics_list_total{job="integrations/kubernetes/kube-state-metrics"}[5m]))) > 0.01
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            description: kube-state-metrics is experiencing errors at an elevated rate in list operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kube-state-metrics/kubestatemetricslisterrors
+            summary: kube-state-metrics is experiencing errors in list operations.
+        - alert: KubeStateMetricsWatchErrors
+          expr: |-
+            (sum by (cluster) (rate(kube_state_metrics_watch_total{job="integrations/kubernetes/kube-state-metrics",result="error"}[5m])) / sum by (cluster) (rate(kube_state_metrics_watch_total{job="integrations/kubernetes/kube-state-metrics"}[5m]))) > 0.01
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            description: kube-state-metrics is experiencing errors at an elevated rate in watch operations. This is likely causing it to not be able to expose metrics about Kubernetes objects correctly or at all.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kube-state-metrics/kubestatemetricswatcherrors
+            summary: kube-state-metrics is experiencing errors in watch operations.
+        - alert: KubeStateMetricsShardingMismatch
+          expr: stdvar by (cluster) (kube_state_metrics_total_shards{job="integrations/kubernetes/kube-state-metrics"}) != 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            description: kube-state-metrics pods are running with different --total-shards configuration, some Kubernetes objects may be exposed multiple times or not exposed at all.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kube-state-metrics/kubestatemetricsshardingmismatch
+            summary: kube-state-metrics sharding is misconfigured.
+        - alert: KubeStateMetricsShardsMissing
+          expr: |-
+            2 ^ max by (cluster) (kube_state_metrics_total_shards{job="integrations/kubernetes/kube-state-metrics"}) - 1 - sum by (cluster) (2 ^ max by (cluster, shard_ordinal) (kube_state_metrics_shard_ordinal{job="integrations/kubernetes/kube-state-metrics"})) != 0
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            description: kube-state-metrics shards are missing, some Kubernetes objects are not being exposed.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kube-state-metrics/kubestatemetricsshardsmissing
+            summary: kube-state-metrics shards are missing.

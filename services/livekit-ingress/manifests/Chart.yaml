@@ -1,0 +1,6 @@
+apiVersion: v2
+name: livekit-ingress-extras
+description: Additional resources for LiveKit Ingress
+type: application
+version: 0.1.0
+appVersion: "1.0"

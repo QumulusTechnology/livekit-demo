@@ -1,0 +1,24 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: trivoh-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: trivoh
+    component: metrics
+spec:
+  selector:
+    matchLabels:
+      app: trivoh
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /api/metrics
+    scrapeTimeout: 10s
+  - port: http
+    interval: 30s
+    path: /_next/metrics
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}

@@ -1,0 +1,75 @@
+# Default values for meet-client
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+replicaCount: 3
+
+image:
+  registry: repo.livekit-demo.cloudportal.app
+  repository: livekit-demo/meet-client
+  tag: latest
+  pullPolicy: Always
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/websocket-services: meet-client
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: meet.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: meet-client-tls
+      hosts:
+        - meet.livekit-demo.cloudportal.app
+
+env:
+  - name: LIVEKIT_URL
+    value: "wss://livekit.livekit-demo.cloudportal.app"
+  - name: LIVEKIT_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  - name: LIVEKIT_API_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: livekit-keys-file
+        key: keys.yaml
+  - name: TRIVOH_API_URL
+    value: "https://api.livekit-demo.cloudportal.app"
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

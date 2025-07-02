@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: document-model-override
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+data:
+  Document.js: |
+    const { Sequelize } = require("sequelize");
+    const sequelize = require("../configs/db");
+
+    const DocumentData = sequelize.define(
+      "documents_data",
+      {
+        id: {
+          type: Sequelize.INTEGER,
+          autoIncrement: true,
+          primaryKey: true,
+        },
+        slug: {
+          type: Sequelize.STRING(255),
+          allowNull: false,
+          unique: true,
+        },
+        content: {
+          type: Sequelize.TEXT,
+          allowNull: false,
+        },
+      },
+      {
+        timestamps: true,
+        createdAt: "created_at",
+        updatedAt: "updated_at",
+      }
+    );
+
+    module.exports = DocumentData;

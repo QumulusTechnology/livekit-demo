@@ -1,0 +1,38 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: livekit-ws
+  namespace: livekit
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    # WebSocket specific annotations
+    nginx.ingress.kubernetes.io/websocket-services: livekit-livekit-server
+    nginx.ingress.kubernetes.io/upstream-keepalive-connections: "50"
+    nginx.ingress.kubernetes.io/upstream-keepalive-requests: "1000"
+    nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "60"
+    # Force HTTP/1.1 for WebSocket support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection $connection_upgrade;
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - ws.livekit-demo.cloudportal.app
+    secretName: livekit-ws-tls
+  rules:
+  - host: ws.livekit-demo.cloudportal.app
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: livekit-connection-optimizer
+            port:
+              number: 80

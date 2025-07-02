@@ -1,0 +1,165 @@
+---
+- name: Execute Distributed Load Test with LiveKit Monitoring
+  hosts: load_test_vms
+  become: no
+  gather_facts: yes
+  strategy: free  # Allow VMs to proceed independently
+  
+  vars_files:
+    - ../test-config.yml
+  
+  tasks:
+    - name: Start system monitoring
+      shell: |
+        nohup python3 /home/ubuntu/load-test/scripts/monitor.py \
+          /home/ubuntu/load-test/metrics/system-metrics-{{ ansible_date_time.epoch }}.jsonl \
+          > /home/ubuntu/load-test/logs/monitor.log 2>&1 &
+        echo $! > /home/ubuntu/load-test/monitor.pid
+      
+    - name: Clear system caches before test
+      become: yes
+      shell: |
+        sync
+        echo 3 > /proc/sys/vm/drop_caches
+      
+    - name: Record start time
+      set_fact:
+        test_start_time: "{{ ansible_date_time.epoch }}"
+
+- name: Monitor LiveKit Server Metrics
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: Start monitoring LiveKit server pods
+      shell: |
+        KUBECONFIG="{{ lookup('env', 'HOME') }}/livekit-demo-k8s.config"
+        MONITOR_DURATION=360  # 6 minutes (5 min test + buffer)
+        OUTPUT_DIR="{{ playbook_dir }}/../results/livekit-metrics"
+        mkdir -p "$OUTPUT_DIR"
+        
+        # Start monitoring script
+        (
+          START_TIME=$(date +%s)
+          echo "timestamp,pod,cpu,memory" > "$OUTPUT_DIR/pod-metrics.csv"
+          
+          while [ $(($(date +%s) - START_TIME)) -lt $MONITOR_DURATION ]; do
+            TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            
+            # Get pod metrics
+            kubectl --kubeconfig="$KUBECONFIG" top pods -n livekit | grep livekit-server | while read line; do
+              POD=$(echo $line | awk '{print $1}')
+              CPU=$(echo $line | awk '{print $2}' | sed 's/m$//')
+              MEM=$(echo $line | awk '{print $3}' | sed 's/Mi$//')
+              echo "$TIMESTAMP,$POD,$CPU,$MEM" >> "$OUTPUT_DIR/pod-metrics.csv"
+            done
+            
+            # Get node metrics
+            kubectl --kubeconfig="$KUBECONFIG" top nodes > "$OUTPUT_DIR/nodes-${TIMESTAMP}.txt"
+            
+            # Get HPA status
+            kubectl --kubeconfig="$KUBECONFIG" get hpa -n livekit > "$OUTPUT_DIR/hpa-${TIMESTAMP}.txt"
+            
+            sleep 10
+          done
+        ) > "{{ playbook_dir }}/../results/livekit-monitor.log" 2>&1 &
+        
+        echo $! > "{{ playbook_dir }}/../results/livekit-monitor.pid"
+      delegate_to: localhost
+      run_once: true
+      
+    - name: Record initial LiveKit state
+      shell: |
+        KUBECONFIG="{{ lookup('env', 'HOME') }}/livekit-demo-k8s.config"
+        OUTPUT_DIR="{{ playbook_dir }}/../results/livekit-metrics"
+        
+        kubectl --kubeconfig="$KUBECONFIG" get pods -n livekit -o wide > "$OUTPUT_DIR/pods-initial.txt"
+        kubectl --kubeconfig="$KUBECONFIG" top pods -n livekit > "$OUTPUT_DIR/pods-metrics-initial.txt"
+        kubectl --kubeconfig="$KUBECONFIG" top nodes > "$OUTPUT_DIR/nodes-initial.txt"
+      delegate_to: localhost
+      run_once: true
+
+- name: Execute Load Tests on VMs
+  hosts: load_test_vms
+  become: no
+  gather_facts: yes
+  strategy: linear
+  
+  tasks:      
+    - name: Synchronize test start (wait for all VMs)
+      delegate_to: localhost
+      run_once: true
+      debug:
+        msg: "All VMs ready. Starting distributed load test in 10 seconds..."
+      
+    - name: Countdown pause
+      delegate_to: localhost
+      run_once: true
+      pause:
+        seconds: 10
+      
+    - name: Execute load test
+      shell: |
+        cd /home/ubuntu/load-test
+        /home/ubuntu/load-test/scripts/run-load-test.sh
+      register: load_test_result
+      async: 600  # 10 minute timeout
+      poll: 30    # Check every 30 seconds
+      
+    - name: Record end time
+      set_fact:
+        test_end_time: "{{ ansible_date_time.epoch }}"
+      
+    - name: Stop monitoring processes
+      shell: |
+        if [ -f /home/ubuntu/load-test/{{ item }}.pid ]; then
+          kill $(cat /home/ubuntu/load-test/{{ item }}.pid) || true
+          rm -f /home/ubuntu/load-test/{{ item }}.pid
+        fi
+      with_items:
+        - monitor
+
+- name: Stop LiveKit Monitoring and Collect Final Metrics
+  hosts: localhost
+  gather_facts: no
+  
+  tasks:
+    - name: Record final LiveKit state
+      shell: |
+        KUBECONFIG="{{ lookup('env', 'HOME') }}/livekit-demo-k8s.config"
+        OUTPUT_DIR="{{ playbook_dir }}/../results/livekit-metrics"
+        
+        kubectl --kubeconfig="$KUBECONFIG" get pods -n livekit -o wide > "$OUTPUT_DIR/pods-final.txt"
+        kubectl --kubeconfig="$KUBECONFIG" top pods -n livekit > "$OUTPUT_DIR/pods-metrics-final.txt"
+        kubectl --kubeconfig="$KUBECONFIG" top nodes > "$OUTPUT_DIR/nodes-final.txt"
+      delegate_to: localhost
+      run_once: true
+      
+    - name: Stop LiveKit monitoring
+      shell: |
+        if [ -f "{{ playbook_dir }}/../results/livekit-monitor.pid" ]; then
+          kill $(cat "{{ playbook_dir }}/../results/livekit-monitor.pid") || true
+          rm -f "{{ playbook_dir }}/../results/livekit-monitor.pid"
+        fi
+      delegate_to: localhost
+      run_once: true
+      
+    - name: Generate LiveKit metrics summary
+      shell: |
+        OUTPUT_DIR="{{ playbook_dir }}/../results/livekit-metrics"
+        
+        # Analyze pod scaling
+        INITIAL_PODS=$(grep -c "livekit-server" "$OUTPUT_DIR/pods-initial.txt" || echo 0)
+        FINAL_PODS=$(grep -c "livekit-server" "$OUTPUT_DIR/pods-final.txt" || echo 0)
+        
+        # Create summary
+        cat > "$OUTPUT_DIR/summary.json" << EOF
+        {
+          "initial_pod_count": $INITIAL_PODS,
+          "final_pod_count": $FINAL_PODS,
+          "pods_added": $((FINAL_PODS - INITIAL_PODS)),
+          "test_timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        }
+        EOF
+      delegate_to: localhost
+      run_once: true

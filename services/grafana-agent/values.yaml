@@ -1,0 +1,245 @@
+# k8s-monitoring v3.x configuration
+cluster:
+  name: management-cluster
+
+# Destinations configuration for v3.x (replaces externalServices)
+destinations:
+  - name: "prometheus"
+    type: "prometheus"
+    # url: "{{ index .Values.global.secrets \"mimir_host\" }}/api/v1/push"
+    url: "http://mimir-distributor.mimir.svc.cluster.local:8080/api/v1/push"
+    auth:
+      tenantId: "master"
+    extraHeaders:
+      X-Scope-OrgID: "master"
+    secret:
+      create: false
+      name: grafana-agent-credentials
+      namespace: "grafana-agent"
+  - name: "loki"
+    type: "loki"
+    url: "http://loki-loki-distributed-gateway.loki.svc.cluster.local:80/loki/api/v1/push"
+    auth:
+      type: "basic"
+      passwordKey: "loki_password"
+      usernameKey: "loki_username"
+    tenantIdKey: "loki_tenant_id"
+    extraHeaders:
+      X-Scope-OrgID: "master"
+    secret:
+      create: false
+      name: grafana-agent-credentials
+      namespace: "grafana-agent"
+
+prometheusOperatorObjects:
+  enabled: true
+
+# Additional scraping configurations for services
+additionalMetricsInstances:
+  - name: "livekit-services"
+    scrapeConfigs:
+      # LiveKit Server metrics
+      - job_name: 'livekit-server'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['livekit']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: livekit-server
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: metrics
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}:6789
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+        
+      # LiveKit Ingress metrics
+      - job_name: 'livekit-ingress'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['livekit']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: livekit-ingress
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}:7889
+            
+      # LiveKit Egress metrics
+      - job_name: 'livekit-egress'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['livekit']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: livekit-egress
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}:7889
+            
+      # Redis Cluster metrics
+      - job_name: 'redis-cluster'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['redis']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: redis-redis-cluster
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: redis-exporter
+            
+      # MinIO metrics
+      - job_name: 'minio-api'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['minio-tenant']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: minio
+          - source_labels: [__meta_kubernetes_endpoint_port_name]
+            action: keep
+            regex: minio-api
+          - source_labels: [__address__]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}
+          - replacement: '/minio/v2/metrics/cluster'
+            target_label: __metrics_path__
+            
+      # Harbor Core metrics  
+      - job_name: 'harbor-core'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['harbor']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_service_name]
+            action: keep
+            regex: harbor-core
+          - replacement: '/api/v2.0/metrics'
+            target_label: __metrics_path__
+            
+      # Application metrics (Trivoh, Meet Client)
+      - job_name: 'application-services'
+        kubernetes_sd_configs:
+          - role: endpoints
+            namespaces:
+              names: ['trivoh-api', 'meet-client', 'trivoh']
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: (.+)
+            replacement: ${1}
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+
+# Feature enablement - opt-in for v3.x
+clusterMetrics:
+  enabled: true
+
+podLogs:
+  enabled: true
+
+# Cluster Events
+clusterEvents:
+  enabled: true
+
+# Node exporter
+nodeExporter:
+  enabled: true
+
+# Kube-state-metrics
+kubeStateMetrics:
+  enabled: true
+
+# Control plane components
+controlPlane:
+  enabled: true
+  components:
+    kubeApiserver:
+      enabled: true
+    kubeControllerManager:
+      enabled: true
+    kubeScheduler:
+      enabled: true
+    kubeProxy:
+      enabled: true
+    kubelet:
+      enabled: true
+
+# CRDs management
+crds:
+  create: false
+
+# Disable components not needed
+opencost:
+  enabled: false
+
+# Alloy metrics instance configuration
+alloy-metrics:
+  enabled: true
+  alloy:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Alloy singleton instance for events
+alloy-singleton:
+  enabled: true
+
+# Alloy logs instance for pod logs
+alloy-logs:
+  enabled: true
+
+# Global configuration for secrets
+global:
+  secrets:
+    mimir_host: ""
+    mimir_tenant_id: ""
+    mimir_username: ""
+    mimir_password: ""
+    loki_host: ""
+    loki_tenant_id: ""
+    loki_username: ""
+    loki_password: ""

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-server
+    app.kubernetes.io/component: server
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-server
+  ports:
+  - name: metrics
+    port: 8083
+    targetPort: 8083
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-repo-server-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-repo-server
+    app.kubernetes.io/component: repo-server
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-repo-server
+  ports:
+  - name: metrics
+    port: 8084
+    targetPort: 8084
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-applicationset-controller-metrics
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-applicationset-controller
+    app.kubernetes.io/component: applicationset-controller
+spec:
+  selector:
+    app.kubernetes.io/name: argocd-applicationset-controller
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080

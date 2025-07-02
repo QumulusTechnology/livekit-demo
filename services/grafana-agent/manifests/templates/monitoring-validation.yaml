@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: monitoring-validation-script
+  namespace: {{ .Release.Namespace }}
+data:
+  validate-monitoring.sh: |
+    #!/bin/bash
+    echo "🔍 Validating Prometheus Monitoring Coverage..."
+    
+    # Colors for output
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    NC='\033[0m' # No Color
+    
+    TOTAL_CHECKS=0
+    PASSED_CHECKS=0
+    
+    check_service() {
+        local service_name="$1"
+        local namespace="$2"
+        local expected_port="$3"
+        local path="${4:-/metrics}"
+        
+        TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+        echo -n "Checking $service_name in $namespace... "
+        
+        # Check if service exists
+        if kubectl get service "$service_name" -n "$namespace" &>/dev/null; then
+            # Try to access metrics endpoint
+            if kubectl exec -n grafana-agent deployment/grafana-agent -- wget -qO- "http://$service_name.$namespace.svc.cluster.local:$expected_port$path" &>/dev/null; then
+                echo -e "${GREEN}✓ PASS${NC}"
+                PASSED_CHECKS=$((PASSED_CHECKS + 1))
+            else
+                echo -e "${YELLOW}⚠ Service exists but metrics endpoint unreachable${NC}"
+            fi
+        else
+            echo -e "${RED}✗ Service not found${NC}"
+        fi
+    }
+    
+    echo "📊 Checking LiveKit Services:"
+    check_service "livekit-server" "livekit" "6789"
+    check_service "livekit-ingress" "livekit" "7889"
+    check_service "livekit-egress" "livekit" "7889"
+    
+    echo "📊 Checking Infrastructure Services:"
+    check_service "redis-redis-cluster" "redis" "9121"
+    check_service "minio" "minio-tenant" "9000" "/minio/v2/metrics/cluster"
+    check_service "harbor-core" "harbor" "8080" "/api/v2.0/metrics"
+    
+    echo "📊 Checking Application Services:"
+    check_service "trivoh-api" "trivoh-api" "9092"
+    check_service "meet-client" "meet-client" "9090"
+    check_service "trivoh" "trivoh" "9091"
+    
+    echo "📊 Checking Monitoring Services:"
+    check_service "mimir-distributor" "mimir" "8080"
+    check_service "loki-loki-distributed-gateway" "loki" "80"
+    check_service "grafana" "grafana" "3000"
+    
+    echo ""
+    echo "📈 Monitoring Coverage Summary:"
+    echo "   Total Services Checked: $TOTAL_CHECKS"
+    echo "   Services with Metrics: $PASSED_CHECKS"
+    echo "   Coverage: $(( PASSED_CHECKS * 100 / TOTAL_CHECKS ))%"
+    
+    if [ $PASSED_CHECKS -eq $TOTAL_CHECKS ]; then
+        echo -e "${GREEN}🎉 All services have monitoring configured!${NC}"
+        exit 0
+    else
+        echo -e "${YELLOW}⚠ Some services may need monitoring configuration${NC}"
+        exit 1
+    fi
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: monitoring-validation-{{ .Release.Revision }}
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "10"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    spec:
+      serviceAccountName: grafana-agent
+      restartPolicy: Never
+      containers:
+      - name: validate-monitoring
+        image: bitnami/kubectl:latest
+        command: ["/bin/bash"]
+        args: ["/scripts/validate-monitoring.sh"]
+        volumeMounts:
+        - name: script
+          mountPath: /scripts
+      volumes:
+      - name: script
+        configMap:
+          name: monitoring-validation-script
+          defaultMode: 0755

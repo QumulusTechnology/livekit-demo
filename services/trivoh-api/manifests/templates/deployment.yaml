@@ -1,0 +1,141 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "trivoh-api.fullname" . }}
+  labels:
+    {{- include "trivoh-api.labels" . | nindent 4 }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "trivoh-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "trivoh-api.selectorLabels" . | nindent 8 }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      imagePullSecrets:
+        - name: harbor-registry
+      initContainers:
+        - name: wait-for-db
+          image: mysql:8.0
+          env:
+          - name: MYSQL_PWD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-secret
+                key: mysql-password
+          command:
+          - /bin/sh
+          - -c
+          - |
+            echo "Waiting for MySQL to be ready..."
+            for i in $(seq 1 60); do
+              if mysql -h mysql -u trivoh_user -e "SELECT 1" > /dev/null 2>&1; then
+                echo "MySQL is ready!"
+                exit 0
+              fi
+              echo "MySQL not ready, waiting... (attempt $i/60)"
+              sleep 5
+            done
+            echo "MySQL did not become ready in time"
+            exit 1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "repo.{{ .Values.domain }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 3030
+              protocol: TCP
+            {{- if .Values.monitoring.enabled }}
+            - name: metrics
+              containerPort: {{ .Values.monitoring.port }}
+              protocol: TCP
+            {{- end }}
+          env:
+            - name: LIVEKIT_URL
+              value: "wss://livekit.{{ .Values.domain }}"
+            {{- range .Values.env }}
+            {{- if ne .name "LIVEKIT_URL" }}
+            - name: {{ .name }}
+              {{- if .value }}
+              value: {{ .value | quote }}
+              {{- else if .valueFrom }}
+              valueFrom:
+                {{- toYaml .valueFrom | nindent 16 }}
+              {{- end }}
+            {{- end }}
+            {{- end }}
+          volumeMounts:
+            - name: server-override
+              mountPath: /app/server.js
+              subPath: server.js
+            - name: db-config-override
+              mountPath: /app/configs/db.js
+              subPath: db.js
+            - name: document-model-override
+              mountPath: /app/models/Document.js
+              subPath: Document.js
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path }}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: server-override
+          configMap:
+            name: trivoh-api-server-override
+            defaultMode: 0644
+        - name: db-config-override
+          configMap:
+            name: db-config-override
+            defaultMode: 0644
+        - name: document-model-override
+          configMap:
+            name: document-model-override
+            defaultMode: 0644
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

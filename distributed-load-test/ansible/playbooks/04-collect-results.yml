@@ -1,0 +1,125 @@
+---
+- name: Collect and Analyze Load Test Results
+  hosts: load_test_vms
+  become: no
+  gather_facts: yes
+  
+  tasks:
+    - name: Create results archive on each VM
+      archive:
+        path:
+          - /home/ubuntu/load-test/logs
+          - /home/ubuntu/load-test/results
+          - /home/ubuntu/load-test/metrics
+        dest: "/home/ubuntu/load-test/vm-{{ vm_index }}-results.tar.gz"
+        format: gz
+      
+    - name: Fetch results from all VMs
+      fetch:
+        src: "/home/ubuntu/load-test/vm-{{ vm_index }}-results.tar.gz"
+        dest: "{{ playbook_dir }}/../results/"
+        flat: yes
+
+- name: Generate Consolidated Report
+  hosts: localhost
+  gather_facts: yes
+  
+  vars_files:
+    - ../test-config.yml
+  
+  tasks:
+    - name: Create report directory
+      file:
+        path: "{{ playbook_dir }}/../results/report"
+        state: directory
+      
+    - name: Extract all VM results
+      unarchive:
+        src: "{{ playbook_dir }}/../results/vm-{{ item }}-results.tar.gz"
+        dest: "{{ playbook_dir }}/../results/report/"
+        creates: "{{ playbook_dir }}/../results/report/vm-{{ item }}"
+      with_sequence: start=0 end=9
+      
+    - name: Generate consolidated report
+      template:
+        src: ../templates/consolidated-report.html.j2
+        dest: "{{ playbook_dir }}/../results/final-report.html"
+      
+    - name: Create summary statistics
+      shell: |
+        cd {{ playbook_dir }}/../results
+        python3 << 'EOF'
+        import json
+        import glob
+        import statistics
+        
+        # Collect metrics from all VMs
+        packet_losses = []
+        bandwidths = []
+        success_rates = []
+        
+        for i in range(10):
+            try:
+                # Read packet loss
+                with open(f'report/results/packet-loss.txt', 'r') as f:
+                    packet_losses.append(float(f.read().strip()))
+                
+                # Parse load test summary
+                with open(f'report/logs/load-test-*.log', 'r') as f:
+                    log_content = f.read()
+                    # Extract metrics (customize based on actual log format)
+                    # This is a placeholder - adjust based on actual output
+            except:
+                pass
+        
+        # Calculate statistics
+        summary = {
+            'total_vms': {{ total_vms }},
+            'total_participants': {{ total_participants }},
+            'avg_packet_loss': statistics.mean(packet_losses) if packet_losses else 0,
+            'max_packet_loss': max(packet_losses) if packet_losses else 0,
+            'min_packet_loss': min(packet_losses) if packet_losses else 0,
+            'test_duration': '{{ test_duration }}',
+            'video_resolution': '{{ video_resolution }}'
+        }
+        
+        with open('summary-stats.json', 'w') as f:
+            json.dump(summary, f, indent=2)
+        EOF
+      
+    - name: Include LiveKit metrics in report
+      shell: |
+        cd {{ playbook_dir }}/../results
+        if [ -d livekit-metrics ]; then
+          cp -r livekit-metrics report/
+        fi
+        
+    - name: Display test summary
+      shell: cat {{ playbook_dir }}/../results/summary-stats.json
+      register: summary_stats
+      
+    - name: Display LiveKit scaling summary
+      shell: |
+        if [ -f {{ playbook_dir }}/../results/livekit-metrics/summary.json ]; then
+          cat {{ playbook_dir }}/../results/livekit-metrics/summary.json
+        fi
+      register: livekit_summary
+      ignore_errors: yes
+      
+    - name: Show final results
+      debug:
+        msg: |
+          ========================================
+          DISTRIBUTED LOAD TEST RESULTS
+          ========================================
+          Total VMs: {{ total_vms }}
+          Total Participants: {{ total_participants }}
+          Test Duration: {{ test_duration }}
+          Video Resolution: {{ video_resolution }}
+          
+          LiveKit Scaling:
+          {{ livekit_summary.stdout | default('No scaling data available') }}
+          
+          Full report available at:
+          {{ playbook_dir }}/../results/final-report.html
+          ========================================

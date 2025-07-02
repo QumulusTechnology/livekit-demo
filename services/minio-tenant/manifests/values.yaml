@@ -1,0 +1,49 @@
+# MinIO tenant configuration
+
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+
+tenant:
+  name: minio
+  namespace: minio-tenant
+  image: minio/minio:RELEASE.2024-07-15T19-02-30Z
+
+  # Storage configuration
+  storage:
+    servers: 4
+    volumesPerServer: 1
+    storageSize: 50G
+
+  # Resource configuration
+  resources:
+    requests:
+      cpu: "1"
+      memory: 2Gi
+
+  # Security configuration
+  security:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 1000
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+
+  # API ingress
+  api:
+    host: minio-api.livekit-demo.cloudportal.app
+    tlsSecret: minio-api-tls
+
+  # Console ingress
+  console:
+    host: minio.livekit-demo.cloudportal.app
+    tlsSecret: minio-console-tls
+
+# Buckets to create
+buckets:
+  - name: "livekit-recordings"
+  - name: "livekit-assets"
+  - name: "backups"
+  - name: "temp-uploads"

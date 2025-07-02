@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-performance-config
+  namespace: livekit
+data:
+  99-livekit-optimizations.conf: |
+    # LiveKit Ultra-Performance Optimizations for 1000+ Participants
+    
+    # Massive network buffer sizes for 1000+ concurrent connections
+    net.core.rmem_max = 134217728          # 128MB receive buffer
+    net.core.wmem_max = 134217728          # 128MB send buffer
+    net.core.rmem_default = 16777216       # 16MB default receive
+    net.core.wmem_default = 16777216       # 16MB default send
+    net.core.netdev_max_backlog = 10000    # Increased packet backlog
+    net.core.netdev_budget = 1000          # Process more packets per cycle
+    net.core.netdev_budget_usecs = 8000    # Increase processing time
+    
+    # Ultra-high concurrency UDP optimizations
+    net.ipv4.udp_mem = "204800 1747600 33554432"
+    net.ipv4.udp_rmem_min = 16384
+    net.ipv4.udp_wmem_min = 16384
+    
+    # Advanced TCP optimizations for 1000+ connections
+    net.ipv4.tcp_rmem = "8192 174760 268435456"
+    net.ipv4.tcp_wmem = "8192 131072 268435456"
+    net.ipv4.tcp_congestion_control = bbr
+    net.core.default_qdisc = fq
+    net.ipv4.tcp_slow_start_after_idle = 0
+    net.ipv4.tcp_no_metrics_save = 1
+    net.ipv4.tcp_fin_timeout = 15
+    net.ipv4.tcp_keepalive_time = 300
+    net.ipv4.tcp_keepalive_probes = 5
+    net.ipv4.tcp_keepalive_intvl = 15
+    net.ipv4.tcp_max_syn_backlog = 8192
+    net.core.somaxconn = 32768
+    
+    # Massive file descriptor limits for 1000+ connections
+    fs.file-max = 4194304
+    fs.nr_open = 4194304
+    
+    # Ultra-high process limits
+    kernel.pid_max = 8388608
+    kernel.threads-max = 8388608
+    
+    # Advanced memory optimizations
+    vm.max_map_count = 524288
+    vm.swappiness = 0                      # Disable swap completely
+    vm.dirty_ratio = 10                    # Lower dirty page ratio
+    vm.dirty_background_ratio = 3          # Aggressive background flushing
+    vm.vfs_cache_pressure = 25             # Reduce VFS cache pressure
+    vm.min_free_kbytes = 131072            # Keep 128MB free
+    vm.zone_reclaim_mode = 0               # Disable zone reclaim
+    
+    # Ultra-performance CPU scheduling
+    kernel.sched_migration_cost_ns = 2000000      # Reduce migration cost
+    kernel.sched_autogroup_enabled = 0
+    kernel.sched_wakeup_granularity_ns = 10000000 # Reduce wakeup granularity
+    kernel.sched_min_granularity_ns = 5000000     # Reduce minimum granularity
+    kernel.sched_latency_ns = 20000000            # Reduce scheduling latency
+    kernel.sched_nr_migrate = 64                  # Increase migration batch
+    
+    # Connection tracking optimizations for 1000+ participants
+    net.netfilter.nf_conntrack_max = 1048576
+    net.netfilter.nf_conntrack_buckets = 262144
+    net.netfilter.nf_conntrack_tcp_timeout_established = 86400
+    
+    # IRQ optimizations
+    kernel.numa_balancing = 0              # Disable NUMA balancing for consistency
+    
+    # Security limits for ultra-high concurrency
+    kernel.core_pattern = /tmp/core-%e-%p-%t
+    kernel.core_uses_pid = 1
+    
+  limits.conf: |
+    # LiveKit resource limits
+    root soft nofile 1048576
+    root hard nofile 1048576
+    * soft nofile 1048576
+    * hard nofile 1048576
+    * soft nproc 1048576
+    * hard nproc 1048576
+    * soft memlock unlimited
+    * hard memlock unlimited

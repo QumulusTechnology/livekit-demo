@@ -1,0 +1,5 @@
+apiVersion: v2
+name: minio-operator-extras
+description: Additional resources for MinIO operator
+type: application
+version: 0.1.0

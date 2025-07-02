@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio-tenant
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/minio-tenant/manifests
+      helm:
+        valueFiles:
+          - $vals/services/minio-tenant/manifests/values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: minio-tenant
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=false
+      - RespectIgnoreDifferences=true
+  revisionHistoryLimit: 1
+  ignoreDifferences:
+  - group: minio.min.io
+    kind: Tenant
+    jsonPointers:
+    - /status
+    - /metadata/annotations
+    - /metadata/finalizers
+    - /metadata/generation
+    - /metadata/resourceVersion
+    - /metadata/managedFields
+    - /spec/pools/0/resources
+    - /spec/pools/0/affinity
+    - /spec/pools/0/volumeClaimTemplate
+    - /spec/resources
+    - /spec/pools
+    managedFieldsManagers:
+    - minio-operator
+  - group: ""
+    kind: Secret
+    jsonPointers:
+    - /metadata/annotations
+    - /metadata/labels
+  - group: external-secrets.io
+    kind: ExternalSecret
+    jsonPointers:
+    - /status
+    - /metadata/annotations
+  - group: cert-manager.io
+    kind: Certificate
+    jsonPointers:
+    - /status
+    - /metadata/annotations
+    - /metadata/ownerReferences
+    - /metadata/managedFields
+    - /metadata/generation
+    - /metadata/resourceVersion
+    - /spec

@@ -1,0 +1,11 @@
+# Generate deterministic Harbor credentials based on namespace
+{{- $harborPassword := sha256sum (printf "%s-harbor-password" .Release.Namespace) | b64enc | trunc 32 }}
+{{- $harborAuth := printf "admin:%s" $harborPassword | b64enc }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: harbor-registry
+  namespace: {{ .Release.Namespace }}
+type: kubernetes.io/dockerconfigjson
+data:
+  .dockerconfigjson: {{ printf "{\"auths\":{\"repo.%s\":{\"username\":\"admin\",\"password\":\"%s\",\"auth\":\"%s\"}}}" .Values.domain $harborPassword $harborAuth | b64enc }}

@@ -1,0 +1,3 @@
+# Domain configuration
+domain: livekit-demo.cloudportal.app
+letsencrypt_email: "admin@livekit-demo.cloudportal.app"

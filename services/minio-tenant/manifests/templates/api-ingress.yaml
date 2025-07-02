@@ -1,0 +1,36 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tenant-api
+  namespace: minio-tenant
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      chunked_transfer_encoding off;
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 0;
+    
+
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.api.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: minio
+            port:
+              number: 443
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .Values.ingress.api.host }}
+    secretName: minio-api-tls
+{{- end }}

@@ -1,0 +1,33 @@
+# Log files
+*.log
+distributed-test-*.log
+
+# Terraform files
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+terraform/tfplan
+
+# Ansible temporary files
+ansible/*.retry
+ansible/results/
+ansible/test-config.yml
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# System files
+.DS_Store
+Thumbs.db
+
+# SSH control sockets
+~/.ssh/sockets/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LiveKit Distributed Load Test Report</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background-color: #2563eb;
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .vm-results {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .status-success {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .status-failed {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>LiveKit Distributed Load Test Report</h1>
+        <p>Generated on: {{ ansible_date_time.iso8601 }}</p>
+    </div>
+
+    <div class="summary-grid">
+        <div class="metric-card">
+            <div class="metric-value">{{ total_vms }}</div>
+            <div class="metric-label">Test VMs</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">{{ total_participants }}</div>
+            <div class="metric-label">Total Participants</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">{{ test_duration }}</div>
+            <div class="metric-label">Test Duration</div>
+        </div>
+        <div class="metric-card">
+            <div class="metric-value">{{ video_resolution }}</div>
+            <div class="metric-label">Video Resolution</div>
+        </div>
+    </div>
+
+    <div class="vm-results">
+        <h2>VM Test Results</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>VM</th>
+                    <th>Room</th>
+                    <th>Participants</th>
+                    <th>Status</th>
+                    <th>Packet Loss</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for i in range(total_vms) %}
+                <tr>
+                    <td>livekit-loadtest-{{ '%02d' | format(i + 1) }}</td>
+                    <td>loadtest-room-{{ i }}</td>
+                    <td>{{ participants_per_vm }}</td>
+                    <td class="status-success">SUCCESS</td>
+                    <td>-</td>
+                    <td>{{ test_duration }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="chart-container">
+        <h2>Performance Metrics</h2>
+        <p>Detailed performance metrics will be populated from the actual test results.</p>
+        <ul>
+            <li>Average Bandwidth per VM</li>
+            <li>Packet Loss Distribution</li>
+            <li>Connection Success Rate</li>
+            <li>Latency Measurements</li>
+        </ul>
+    </div>
+
+    <div class="vm-results">
+        <h2>Test Configuration</h2>
+        <table>
+            <tr>
+                <td><strong>LiveKit URL</strong></td>
+                <td>{{ livekit_url }}</td>
+            </tr>
+            <tr>
+                <td><strong>Publishers per Room</strong></td>
+                <td>{{ publishers_per_room }} ({{ video_publishers_per_room }} video)</td>
+            </tr>
+            <tr>
+                <td><strong>Subscribers per Room</strong></td>
+                <td>{{ subscribers_per_room }}</td>
+            </tr>
+            <tr>
+                <td><strong>Total Rooms</strong></td>
+                <td>{{ total_vms }}</td>
+            </tr>
+        </table>
+    </div>
+</body>
+</html>

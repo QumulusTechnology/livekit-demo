@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: livekit-livekit-server
+data:
+  config.yaml: |
+    development: false
+    port: 7880
+    prometheus_port: 6789
+    log_level: error
+    key_file: /etc/livekit/keys.yaml
+    redis:
+      cluster_addresses:
+      - redis-cluster-0.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-1.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-cluster-2.redis-cluster.livekit.svc.cluster.local:6379
+      max_idle: 10
+      pool_size: 15
+    room:
+      max_participants: 1000
+      participant_timeout: 60s
+      track_timeout: 30s
+    rtc:
+      tcp_port: 7881
+      port_range_start: 50000
+      port_range_end: 60000
+      use_external_ip: true
+      ice_candidate_pool_size: 15
+      turn_server_timeout: 20s
+      tcp_listen_port: 7881
+      use_ice_lite: true
+      stun_servers:
+      - global.stun.twilio.com:3478
+      - stun.l.google.com:19302
+      max_track_subscribers: 1000
+      subscriber_bandwidth_limit: 50000000
+    s3:
+      endpoint: http://minio.minio-tenant.svc.cluster.local:80
+      bucket: livekit-recordings
+      region: us-east-1
+      force_path_style: true
+      access_key: ${MINIO_ACCESS_KEY}
+      secret_key: ${MINIO_SECRET_KEY}
+    egress:
+      enabled: true
+    turn:
+      enabled: true
+      domain: turn.livekit-demo.cloudportal.app
+      udp_port: 3478
+      external_tls: false
+      relay_range_start: 30000
+      relay_range_end: 30100
