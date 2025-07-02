@@ -73,6 +73,7 @@ opencost:
 
 # Alloy metrics instance configuration
 alloy-metrics:
+  enabled: true
   alloy:
     resources:
       requests:
