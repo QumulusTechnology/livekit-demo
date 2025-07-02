@@ -16,6 +16,9 @@ spec:
       values: |
         installCRDs: 'true'
         fullnameOverride: 'ingress-nginx'
+        controller:
+          admissionWebhooks:
+            enabled: false
         service:
           annotations:
             service.beta.kubernetes.io/openstack-internal-load-balancer: 'true'
