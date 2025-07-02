@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: redis
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://helm.livekit.io
+      targetRevision: 12.0.7
+      chart: redis-cluster
+      helm:
+        valueFiles:
+          - $vals/services/redis/values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: redis
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true

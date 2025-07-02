@@ -1,0 +1,32 @@
+replicaCount: 3
+
+imagePullSecrets: []
+
+livekit:
+  rtc:
+    tcp_port: 7881
+    port_range_start: 50000
+    port_range_end: 60000
+    use_external_ip: true
+  redis:
+    address: redis.redis.svc.cluster.local:6379
+
+# Set this option to true if you want to store your API keys in a secret instead of the config file
+storeKeysInSecret:
+  enabled: true
+
+nameOverride: ""
+fullnameOverride: ""
+
+loadBalancer:
+  type: disable
+  servicePort: 80
+  annotations: {}
+
+turnLoadbalancer:
+  enable: true
+
+podHostNetwork: true
+
+serviceMonitor:
+  create: true

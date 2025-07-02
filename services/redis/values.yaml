@@ -1,0 +1,23 @@
+image:
+  registry: docker.io
+  repository: bitnami/redis-cluster
+  tag: 8.0.2-debian-12-r2
+networkPolicy:
+  enabled: false
+cluster:
+  init: true
+  nodes: 3
+  replicas: 0
+usePassword: false
+persistence:
+    enabled: true
+metrics:
+  enabled: true
+redis:
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "0.5Gi"
+    limits:
+      cpu: "250m"
+      memory: "0.5Gi"
