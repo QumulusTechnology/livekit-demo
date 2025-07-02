@@ -15,6 +15,10 @@ spec:
     - repoURL: https://github.com/grafana/grafana-operator.git
       path: deploy/helm/grafana-operator
       targetRevision: v5.18.0
+      helm:
+        parameters:
+          - name: installCRDs
+            value: "true"
 
     - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
       targetRevision: main
@@ -35,6 +39,7 @@ spec:
       allowEmpty: true
     syncOptions:
       - CreateNamespace=true
+      - IncludeCRDs=true
   ignoreDifferences:
     - group: "grafana.integreatly.org"
       kind: "GrafanaDashboard"
