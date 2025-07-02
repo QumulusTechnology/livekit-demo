@@ -83,6 +83,10 @@ alloy-metrics:
         cpu: 500m
         memory: 512Mi
 
+# Alloy singleton instance for events
+alloy-singleton:
+  enabled: true
+
 # Global configuration for secrets
 global:
   secrets:
