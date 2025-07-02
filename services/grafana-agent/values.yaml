@@ -1,85 +1,100 @@
-# Cluster settings
+# k8s-monitoring v3.x compatible configuration
 cluster:
   name: management-cluster
 
+# External services configuration for v3.x
 externalServices:
   prometheus:
-    hostKey: "mimir_host"
+    host: "{{ index .Values.global.secrets \"mimir_host\" }}"
     queryEndpoint: /prometheus/api/v1/query
     writeEndpoint: /api/v1/push
-    tenantIdKey: "mimir_tenant_id"
+    tenantId: "{{ index .Values.global.secrets \"mimir_tenant_id\" }}"
     basicAuth:
-      usernameKey: "mimir_username"
-      passwordKey: "mimir_password"
+      username: "{{ index .Values.global.secrets \"mimir_username\" }}"
+      password: "{{ index .Values.global.secrets \"mimir_password\" }}"
     secret:
       create: false
       name: grafana-agent-credentials
       namespace: "grafana-agent"
   loki:
-    hostKey: "loki_host"
+    host: "{{ index .Values.global.secrets \"loki_host\" }}"
     writeEndpoint: /loki/api/v1/push
-    tenantIdKey: "loki_tenant_id"
+    tenantId: "{{ index .Values.global.secrets \"loki_tenant_id\" }}"
     basicAuth:
-      usernameKey: "loki_username"
-      passwordKey: "loki_password"
+      username: "{{ index .Values.global.secrets \"loki_username\" }}"
+      password: "{{ index .Values.global.secrets \"loki_password\" }}"
     secret:
       create: false
       name: grafana-agent-credentials
       namespace: "grafana-agent"
+
+# Feature enablement
 logs:
   enabled: true
 traces:
   enabled: false
-grafana-agent:
-  crds:
-    create: false
-prometheus-operator-crds:
-  enabled: false
-opencost:
-  enabled: false
+
+# Metrics collection configuration for v3.x
 metrics:
-  kube-state-metrics:
+  enabled: true
+  
+  # Kubernetes component metrics
+  kubernetesMonitoring:
     enabled: true
-    allowList: null
-  node-exporter:
+    
+  # Node exporter
+  nodeExporter:
     enabled: true
-    allowList: null
-  apiserver:
+    
+  # Kube-state-metrics
+  kubeStateMetrics:
     enabled: true
-    allowList: null
-  kubelet:
-    enabled: true
-    allowList: null
-  kubeControllerManager:
-    enabled: true
-    allowList: null
-  kubeScheduler:
-    enabled: true
-    allowList: null
-  kubeProxy:
-    enabled: true
-    allowList: null
+    
+  # cAdvisor
   cadvisor:
     enabled: true
-    allowList: null
-    extraMetricRelabelingRules: |-
-      rule {
-        action = "replace"
-        source_labels = ["instance"]
-        target_label = "node"
-      }
+    
+  # Control plane components
+  controlPlane:
+    enabled: true
+    components:
+      kubeApiserver:
+        enabled: true
+      kubeControllerManager:
+        enabled: true
+      kubeScheduler:
+        enabled: true
+      kubeProxy:
+        enabled: true
+      kubelet:
+        enabled: true
 
-extraConfig: |-
-    mimir.rules.kubernetes "main" {
-      tenant_id = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_tenant_id"])
-      address = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_host"])
-      basic_auth {
-        username = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_username"])
-        password = remote.kubernetes.secret.metrics_service.data["mimir_password"]
-      }
-      rule_selector {
-        match_labels = {
-            tenant = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_tenant_id"]),
-        }
-      }
-    }
+# CRDs management
+crds:
+  create: false
+
+# Disable components not needed
+opencost:
+  enabled: false
+
+alloy:
+  alloy:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Global configuration for secrets
+global:
+  secrets:
+    mimir_host: ""
+    mimir_tenant_id: ""
+    mimir_username: ""
+    mimir_password: ""
+    loki_host: ""
+    loki_tenant_id: ""
+    loki_username: ""
+    loki_password: ""
