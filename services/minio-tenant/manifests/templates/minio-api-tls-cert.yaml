@@ -1,0 +1,14 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: minio-api-tls
+  namespace: {{ .Values.tenant.namespace }}
+spec:
+  secretName: minio-api-tls
+  issuerRef:
+    name: letsencrypt
+    kind: ClusterIssuer
+  commonName: {{ .Values.ingress.api.host }}
+  dnsNames:
+  - {{ .Values.ingress.api.host }}
+  - {{ .Values.ingress.console.host }}

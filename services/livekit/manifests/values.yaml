@@ -1,0 +1,5 @@
+# Values for LiveKit manifests
+
+# Node tuning DaemonSet - re-enabled with fixes
+nodeTuning:
+  enabled: true

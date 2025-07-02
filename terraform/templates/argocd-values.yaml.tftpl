@@ -1,0 +1,23 @@
+global:
+  domain: argocd.${domain}
+
+crds:
+  install: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+    extraTls:
+      - hosts:
+        - argocd.${domain}
+        secretName: argocd-cert
+
+configs:
+  params:
+    server.insecure: true
+    dexserver.disable.tls: true

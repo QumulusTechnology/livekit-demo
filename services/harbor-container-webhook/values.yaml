@@ -1,0 +1,118 @@
+# Harbor Container Webhook Configuration
+# Automatically redirects container image pulls to Harbor proxy caches
+
+# Let the chart use its default image
+# image:
+#   repository: ghcr.io/indeedeng/harbor-container-webhook
+#   tag: v0.5.0
+#   pullPolicy: IfNotPresent
+
+# Enable cert-manager for TLS certificates
+certManager:
+  enabled: true
+
+# Container image rewrite rules for major registries
+rules:
+  # Docker Hub proxy rule
+  - name: 'docker.io rewrite rule'
+    matches:
+      - '^docker.io'
+    # excludes:
+    #   - '^docker.io/goharbor/.*'  # Exclude Harbor images if needed
+    replace: repo.master.cloudportal.app/dockerhub-proxy
+    checkUpstream: false
+
+  # Quay.io proxy rule  
+  - name: 'quay.io rewrite rule'
+    matches:
+      - '^quay.io'
+    # excludes:
+    #   - '^quay.io/jetstack/.*'  # Exclude specific images if needed
+    replace: repo.master.cloudportal.app/quay-proxy
+    checkUpstream: false
+
+  # Google Container Registry proxy rule
+  - name: 'gcr.io rewrite rule'
+    matches:
+      - '^gcr.io'
+    replace: repo.master.cloudportal.app/gcr-proxy
+    checkUpstream: false
+
+  # Kubernetes registry proxy rule
+  - name: 'registry.k8s.io rewrite rule'
+    matches:
+      - '^registry.k8s.io'
+    # excludes:
+    #   - '^registry.k8s.io/ingress-nginx/.*'  # Exclude specific images if needed
+    replace: repo.master.cloudportal.app/k8s-proxy
+    checkUpstream: false
+
+  # GitHub Container Registry proxy rule
+  - name: 'ghcr.io rewrite rule'
+    matches:
+      - '^ghcr.io'
+    replace: repo.master.cloudportal.app/ghcr-proxy
+    checkUpstream: false
+
+# Webhook configuration
+webhook:
+  # Port for the webhook service
+  port: 8443
+  
+  # TLS configuration
+  tls:
+    # Certificate and key will be managed by cert-manager
+    certDir: /etc/certs
+
+# Pod configuration
+replicaCount: 2
+
+# Resource allocation
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Pod security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Node selector and affinity
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Service configuration
+service:
+  type: ClusterIP
+  port: 443
+  targetPort: 8443
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Monitoring
+serviceMonitor:
+  enabled: true
+  namespace: harbor-container-webhook
+  interval: 30s
+  path: /metrics

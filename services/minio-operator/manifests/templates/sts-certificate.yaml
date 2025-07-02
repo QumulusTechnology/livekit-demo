@@ -1,0 +1,23 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: minio-operator
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: sts-tls
+  namespace: minio-operator
+spec:
+  secretName: sts-tls
+  issuerRef:
+    name: selfsigned-issuer
+    kind: Issuer
+  commonName: sts
+  dnsNames:
+  - sts
+  - sts.minio-operator.svc
+  - sts.minio-operator.svc.cluster.local

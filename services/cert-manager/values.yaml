@@ -1,0 +1,26 @@
+
+installCRDs: true
+
+# Enable Prometheus monitoring for cert-manager
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+    prometheusInstance: default
+    targetPort: 9402
+    path: /metrics
+    interval: 60s
+    scrapeTimeout: 30s
+
+# Enable metrics for webhook and cainjector
+webhook:
+  prometheus:
+    enabled: true
+    servicemonitor:
+      enabled: true
+
+cainjector:
+  prometheus:
+    enabled: true
+    servicemonitor:
+      enabled: true

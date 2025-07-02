@@ -1,0 +1,74 @@
+apiVersion: minio.min.io/v2
+kind: Tenant
+metadata:
+  name: qumulus
+spec:
+  configuration:
+    name: qumulus-env-configuration
+  exposeServices:
+    console: false
+    minio: false
+  features:
+    domains:
+      console: https://s3.<path:argocd:argocd-vars#region>.<path:argocd:argocd-vars#domain>
+      minio:
+      - https://s3api.<path:argocd:argocd-vars#region>.<path:argocd:argocd-vars#domain>
+  env:
+  - name: MINIO_PROMETHEUS_AUTH_TYPE
+    value: public
+  image: minio/minio:RELEASE.2024-07-15T19-02-30Z
+  mountPath: /export
+  pools:
+  - containerSecurityContext:
+      allowPrivilegeEscalation: false
+      capabilities:
+        drop:
+        - ALL
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+      seccompProfile:
+        type: RuntimeDefault
+    name: pool-0
+    resources:
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    runtimeClassName: ""
+    securityContext:
+      fsGroup: 1000
+      fsGroupChangePolicy: OnRootMismatch
+      runAsGroup: 1000
+      runAsNonRoot: true
+      runAsUser: 1000
+    servers: 4
+    volumeClaimTemplate:
+      metadata:
+        name: data
+      spec:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 150G
+      status: {}
+    volumesPerServer: 4
+  requestAutoCert: false
+  externalCertSecret:
+  - name: minio-tls
+    type: cert-manager.io/v1
+  users:
+  - name: qumulus-user-0
+  buckets:
+    - name: "mimir-alertmanager"
+    - name: "mimir-ruler"
+    - name: "mimir-blocks"
+    - name: "loki-chunks"
+    - name: "loki-ruler"
+    - name: "loki-admin"
+    - name: "cnpg-backup"
+    - name: "velero"
+    - name: "tempo-traces"
+    - name: "tempo-admin"
+    - name: "harbor-registry"
+    - name: "nexus-repo"

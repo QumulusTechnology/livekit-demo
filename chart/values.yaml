@@ -1,0 +1,25 @@
+# Default values for core-services.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+letsencrypt_email: "livekit-demo@letsencrypt.cloudportal.app"
+domain: "livekit-demo.cloudportal.app"
+tenant: "master"
+
+# ArgoCD application configuration
+spec:
+  project: core-services
+  source:
+    repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      allowEmpty: true
+      prune: false
+      selfHeal: true
+
+# Application enablement flags
+harborContainerWebhook:
+  enabled: true

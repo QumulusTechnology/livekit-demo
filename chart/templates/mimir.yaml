@@ -1,0 +1,118 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: mimir
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 5.7.0
+      chart: mimir-distributed
+      helm:
+        valueFiles:
+          - $vals/services/mimir/values.yaml
+        valuesObject:
+          nginx:
+            ingress:
+              hosts:
+              - host: mimir.{{ .Values.domain }}
+                paths:
+                  - path: /
+                    pathType: Prefix
+              tls:
+              - secretName: mimir-tls
+                hosts:
+                - mimir.{{ .Values.domain }}
+
+          metaMonitoring:
+            grafanaAgent:
+              logs:
+                remote:
+                  url: "https://loki.{{ .Values.domain }}/loki/api/v1/push"
+                  headers:
+                    X-Scope-OrgID: master
+              metrics:
+                remote:
+                  url: "https://mimir.{{ .Values.domain }}/api/v1/push"
+                  headers:
+                    X-Scope-OrgID: master
+
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: memcached
+      targetRevision: 7.8.6
+      helm:
+        releaseName: index-cache
+        valueFiles:
+          - $vals/services/mimir/memcached-index-values.yaml
+
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: memcached
+      targetRevision: 7.8.6
+      helm:
+        releaseName: chunk-cache
+        valueFiles:
+          - $vals/services/mimir/memcached-chunk-values.yaml
+
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: memcached
+      targetRevision: 7.8.6
+      helm:
+        releaseName: metadata-cache
+        valueFiles:
+          - $vals/services/mimir/memcached-metadata-values.yaml
+
+    - repoURL: https://charts.bitnami.com/bitnami
+      chart: memcached
+      targetRevision: 7.8.6
+      helm:
+        releaseName: result-cache
+        valueFiles:
+          - $vals/services/mimir/memcached-result-values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: mimir
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+  ignoreDifferences:
+  - group: apps
+    kind: StatefulSet
+    jsonPointers:
+    - /spec/replicas
+    - /metadata/annotations
+    - /spec/volumeClaimTemplates
+  - group: apps
+    kind: Deployment
+    jsonPointers:
+    - /spec/replicas
+    - /metadata/annotations
+  - group: ""
+    kind: Service
+    jsonPointers:
+    - /spec/clusterIP
+    - /spec/clusterIPs
+    - /metadata/annotations
+  - group: monitoring.coreos.com
+    kind: ServiceMonitor
+    jsonPointers:
+    - /metadata/annotations
+    - /spec
+  - group: monitoring.grafana.com
+    kind: PodLogs
+    jsonPointers:
+    - /metadata/annotations
+    - /spec

@@ -1,0 +1,178 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+  namespace: {{ .Release.Namespace }}
+data:
+  init.sql: |
+    -- Disable foreign key checks during initialization
+    SET FOREIGN_KEY_CHECKS = 0;
+    
+    -- Create database if not exists
+    CREATE DATABASE IF NOT EXISTS trivoh;
+    USE trivoh;
+    
+    -- Grant all privileges to the user
+    GRANT ALL PRIVILEGES ON trivoh.* TO 'trivoh_user'@'%';
+    FLUSH PRIVILEGES;
+    
+    -- Drop tables if they exist to ensure clean state
+    DROP TABLE IF EXISTS `licenses`;
+    DROP TABLE IF EXISTS `subscriptions`;
+    DROP TABLE IF EXISTS `calendar_attendees`;
+    DROP TABLE IF EXISTS `calendars`;
+    DROP TABLE IF EXISTS `meetings`;
+    DROP TABLE IF EXISTS `project_milestones`;
+    DROP TABLE IF EXISTS `project_tasks`;
+    DROP TABLE IF EXISTS `projects`;
+    DROP TABLE IF EXISTS `users`;
+    
+    -- Create tables in correct order to avoid foreign key issues
+    -- Users table (base table that others reference)
+    CREATE TABLE IF NOT EXISTS `users` (
+      `id` VARCHAR(55) NOT NULL,
+      `name` VARCHAR(255),
+      `email` VARCHAR(255) UNIQUE,
+      `avatar` VARCHAR(255),
+      `timezone` VARCHAR(255),
+      `online_status` VARCHAR(255),
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB;
+    
+    -- Projects table
+    CREATE TABLE IF NOT EXISTS `projects` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `name` VARCHAR(255),
+      `description` TEXT,
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB;
+    
+    -- Project tasks table
+    CREATE TABLE IF NOT EXISTS `project_tasks` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `project_id` INTEGER,
+      `title` VARCHAR(255),
+      `description` TEXT,
+      `status` VARCHAR(255),
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`),
+      FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB;
+    
+    -- Project milestones table
+    CREATE TABLE IF NOT EXISTS `project_milestones` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `project_id` INTEGER,
+      `title` VARCHAR(255),
+      `description` TEXT,
+      `due_date` DATETIME,
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`),
+      FOREIGN KEY (`project_id`) REFERENCES `projects` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB;
+    
+    -- Meetings table
+    CREATE TABLE IF NOT EXISTS `meetings` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `uuid` VARCHAR(255),
+      `title` VARCHAR(255),
+      `category` VARCHAR(255),
+      `user_id` VARCHAR(55),
+      `schedule` VARCHAR(255),
+      `invitatin_emails` TEXT,
+      `schedule_date` DATETIME,
+      `start_time` VARCHAR(255),
+      `end_time` VARCHAR(255),
+      `ip` VARCHAR(255),
+      `slug` VARCHAR(255),
+      `views` INTEGER DEFAULT 0,
+      `image` VARCHAR(255),
+      `status` VARCHAR(255),
+      `server_id` VARCHAR(255),
+      `password` VARCHAR(255),
+      `meeting_password` VARCHAR(255),
+      `camera_allowed` BOOLEAN DEFAULT TRUE,
+      `microphone_allowed` BOOLEAN DEFAULT TRUE,
+      `screen_sharing` BOOLEAN DEFAULT TRUE,
+      `lobby_enabled` BOOLEAN DEFAULT FALSE,
+      `host_enabled` BOOLEAN DEFAULT TRUE,
+      `guest_allowed` BOOLEAN DEFAULT TRUE,
+      `timezone` VARCHAR(255),
+      `reminded` INTEGER DEFAULT 0,
+      `sequence` INTEGER,
+      `end_date` DATETIME,
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB;
+    
+    -- Calendars table
+    CREATE TABLE IF NOT EXISTS `calendars` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `user_id` VARCHAR(55),
+      `title` VARCHAR(255),
+      `detail` TEXT,
+      `start_date` DATETIME,
+      `start_date_timezone` VARCHAR(255),
+      `end_date` DATETIME,
+      `end_date_timezone` VARCHAR(255),
+      `location` VARCHAR(255),
+      `status` VARCHAR(255),
+      `reminded` INTEGER DEFAULT 0,
+      `sequence` INTEGER,
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB;
+    
+    -- Calendar attendees table
+    CREATE TABLE IF NOT EXISTS `calendar_attendees` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `calendar_id` INTEGER,
+      `email` VARCHAR(255),
+      `status` VARCHAR(255),
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`),
+      FOREIGN KEY (`calendar_id`) REFERENCES `calendars` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB;
+    
+    -- Subscriptions table (needed for licenses)
+    CREATE TABLE IF NOT EXISTS `subscriptions` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `name` VARCHAR(255),
+      `status` VARCHAR(255),
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`)
+    ) ENGINE=InnoDB;
+    
+    -- Licenses table
+    CREATE TABLE IF NOT EXISTS `licenses` (
+      `id` INTEGER NOT NULL AUTO_INCREMENT,
+      `name` ENUM('Basic', 'Pro', 'Max') NOT NULL,
+      `user_id` INTEGER NOT NULL,
+      `assigned_to` INTEGER,
+      `subscription_id` INTEGER NOT NULL,
+      `bussiness_id` INTEGER,
+      `expires_at` DATE NOT NULL,
+      `status` ENUM('Active', 'Inactive', 'Expired', 'Pending', 'Incomplete_expired') DEFAULT 'Active',
+      `is_trial` TINYINT(1) DEFAULT false,
+      `created_at` DATETIME NOT NULL,
+      `updated_at` DATETIME NOT NULL,
+      PRIMARY KEY (`id`),
+      FOREIGN KEY (`subscription_id`) REFERENCES `subscriptions` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB;
+    
+    -- Re-enable foreign key checks
+    SET FOREIGN_KEY_CHECKS = 1;
+    
+    -- Create a test user for development
+    INSERT IGNORE INTO `users` (`id`, `name`, `email`, `avatar`, `timezone`, `online_status`, `created_at`, `updated_at`)
+    VALUES ('test-user-1', 'Test User', 'test@example.com', NULL, 'UTC', 'offline', NOW(), NOW());

@@ -1,0 +1,21 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-apiserver-histogram-rules
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: kube-apiserver-histogram.rules
+      rules:
+        - record: cluster_quantile:apiserver_request_slo_duration_seconds:histogram_quantile
+          expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_slo_duration_seconds_bucket{job="apiserver",subresource!~"proxy|attach|log|exec|portforward",verb=~"LIST|GET"}[5m]))) > 0
+          labels:
+            quantile: "0.99"
+            verb: read
+        - record: cluster_quantile:apiserver_request_slo_duration_seconds:histogram_quantile
+          expr: histogram_quantile(0.99, sum by (cluster, le, resource) (rate(apiserver_request_slo_duration_seconds_bucket{job="apiserver",subresource!~"proxy|attach|log|exec|portforward",verb=~"POST|PUT|PATCH|DELETE"}[5m]))) > 0
+          labels:
+            quantile: "0.99"
+            verb: write

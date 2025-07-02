@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: grafana
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "2"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://github.com/grafana/grafana-operator.git
+      path: deploy/helm/grafana-operator
+      targetRevision: v5.18.0
+      helm:
+        parameters:
+          - name: installCRDs
+            value: "true"
+
+    - repoURL: https://cloudnative-pg.github.io/grafana-dashboards
+      targetRevision: v0.0.5
+      chart: cluster
+      helm:
+        valuesObject:
+          grafanaDashboard:
+            annotations:
+              k8s-sidecar-target-directory: /var/lib/grafana/dashboards/CNPG
+
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/grafana/manifests
+      helm:
+        valuesObject:
+          domain: {{ .Values.domain }}
+          tenant: {{ .Values.tenant }}
+
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: grafana
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - IncludeCRDs=true
+      - ServerSideApply=true
+  ignoreDifferences:
+    - group: "grafana.integreatly.org"
+      kind: "GrafanaDashboard"
+      jsonPointers:
+        - /spec/instanceSelector

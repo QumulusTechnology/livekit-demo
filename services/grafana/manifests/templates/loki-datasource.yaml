@@ -1,0 +1,33 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDatasource
+metadata:
+  name: loki
+spec:
+  valuesFrom:
+  - targetPath: "basicAuthUser"
+    valueFrom:
+      secretKeyRef:
+        name: "grafana-datasource-credentials"
+        key: "loki_username"
+  - targetPath: "secureJsonData.basicAuthPassword"
+    valueFrom:
+      secretKeyRef:
+        name: "grafana-datasource-credentials"
+        key: "loki_password"
+  instanceSelector:
+    matchLabels:
+      cluster_type: "management"
+  datasource:
+    name: Loki
+    type: loki
+    access: proxy
+    url: https://gateway-loki.{{ .Values.domain }}
+    basicAuthUser: ${loki_username}
+    basicAuth: true
+    isDefault: false
+    jsonData:
+      manageAlerts: true
+      httpHeaderName1: X-Scope-OrgID
+    secureJsonData:
+      basicAuthPassword : ${loki_password}
+      httpHeaderValue1: {{ .Values.tenant }}

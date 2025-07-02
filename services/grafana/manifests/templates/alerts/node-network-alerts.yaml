@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: node-network-alerts
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: node-network
+      rules:
+        - alert: NodeNetworkInterfaceFlapping
+          expr: changes(node_network_up{device!~"veth.+",job="integrations/node_exporter"}[2m]) > 2
+          for: 2m
+          labels:
+            severity: warning
+          annotations:
+            description: Network interface "{{`{{`}} $labels.device {{`}}`}}" changing its up status often on node-exporter {{`{{`}} $labels.namespace {{`}}`}}/{{`{{`}} $labels.pod {{`}}`}}
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/general/nodenetworkinterfaceflapping
+            summary: Network interface is often changing its status

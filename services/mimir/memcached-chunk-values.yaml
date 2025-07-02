@@ -1,0 +1,14 @@
+resources:
+  limits: {}
+  requests:
+    memory: 64Mi
+    cpu: 250m
+replicaCount: 1
+architecture: high-availability
+extraEnvVars:
+  - name: MEMCACHED_MAX_CONNECTIONS
+    value: "1024"
+  - name: MEMCACHED_CACHE_SIZE
+    value: "4096"
+  - name: MEMCACHED_MAX_ITEM_SIZE
+    value: "5242880"

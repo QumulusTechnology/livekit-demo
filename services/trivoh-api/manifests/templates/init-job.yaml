@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trivoh-api-db-init
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-init
+        image: mysql:8.0
+        env:
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password
+        command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Waiting for MySQL to be ready..."
+          until mysql -h mysql -u trivoh_user -p$MYSQL_PASSWORD -e "SELECT 1"; do
+            echo "MySQL not ready, waiting..."
+            sleep 5
+          done
+          
+          echo "MySQL is ready. Creating all required tables without foreign keys..."
+          mysql -h mysql -u trivoh_user -p$MYSQL_PASSWORD trivoh -e "
+          SET FOREIGN_KEY_CHECKS = 0;
+          SET sql_mode = '';
+          
+          -- Create all tables without foreign key constraints
+          CREATE TABLE IF NOT EXISTS users (id VARCHAR(55) NOT NULL, name VARCHAR(255), email VARCHAR(255) UNIQUE, avatar VARCHAR(255), timezone VARCHAR(255), online_status VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS subscriptions (id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(255), status VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS projects (id INTEGER NOT NULL AUTO_INCREMENT, name VARCHAR(255), description TEXT, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS project_tasks (id INTEGER NOT NULL AUTO_INCREMENT, project_id INTEGER, title VARCHAR(255), description TEXT, status VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS project_task_links (id INTEGER AUTO_INCREMENT, task_id INTEGER NOT NULL, title VARCHAR(255) NOT NULL, link VARCHAR(255) NOT NULL, icon VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS project_task_time_trackings (id INTEGER AUTO_INCREMENT, task_id INTEGER NOT NULL, user_id INTEGER NOT NULL, start_time DATETIME DEFAULT CURRENT_TIMESTAMP, hours INTEGER NOT NULL DEFAULT 0, minutes INTEGER NOT NULL DEFAULT 0, estimated_hours INTEGER NOT NULL DEFAULT 0, estimated_minutes INTEGER NOT NULL DEFAULT 0, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS project_milestones (id INTEGER NOT NULL AUTO_INCREMENT, project_id INTEGER, title VARCHAR(255), description TEXT, due_date DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS project_milestone_assignees (id INTEGER AUTO_INCREMENT, milestone_id INTEGER, user_id INTEGER, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS meetings (id INTEGER NOT NULL AUTO_INCREMENT, uuid VARCHAR(255), title VARCHAR(255), category VARCHAR(255), user_id VARCHAR(55), schedule VARCHAR(255), invitatin_emails TEXT, schedule_date DATETIME, start_time VARCHAR(255), end_time VARCHAR(255), ip VARCHAR(255), slug VARCHAR(255), views INTEGER DEFAULT 0, image VARCHAR(255), status VARCHAR(255), server_id VARCHAR(255), password VARCHAR(255), meeting_password VARCHAR(255), camera_allowed BOOLEAN DEFAULT TRUE, microphone_allowed BOOLEAN DEFAULT TRUE, screen_sharing BOOLEAN DEFAULT TRUE, lobby_enabled BOOLEAN DEFAULT FALSE, host_enabled BOOLEAN DEFAULT TRUE, guest_allowed BOOLEAN DEFAULT TRUE, timezone VARCHAR(255), reminded INTEGER DEFAULT 0, sequence INTEGER, end_date DATETIME, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS licenses (id INTEGER NOT NULL AUTO_INCREMENT, name ENUM('Basic', 'Pro', 'Max') NOT NULL, user_id INTEGER NOT NULL, assigned_to INTEGER, subscription_id INTEGER NOT NULL, bussiness_id INTEGER, expires_at DATE NOT NULL, status ENUM('Active', 'Inactive', 'Expired', 'Pending', 'Incomplete_expired') DEFAULT 'Active', is_trial TINYINT(1) DEFAULT false, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS calendars (id INTEGER NOT NULL AUTO_INCREMENT, user_id VARCHAR(55), title VARCHAR(255), detail TEXT, start_date DATETIME, start_date_timezone VARCHAR(255), end_date DATETIME, end_date_timezone VARCHAR(255), location VARCHAR(255), status VARCHAR(255), reminded INTEGER DEFAULT 0, sequence INTEGER, created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS calendar_attendees (id INTEGER NOT NULL AUTO_INCREMENT, calendar_id INTEGER, email VARCHAR(255), status VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS availabilities (id INTEGER AUTO_INCREMENT, user_id VARCHAR(55), title VARCHAR(255), description TEXT, start_date DATETIME, end_date DATETIME, timezone VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS ai_chats (id INTEGER AUTO_INCREMENT, user_id VARCHAR(55), title VARCHAR(255), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          CREATE TABLE IF NOT EXISTS ai_chat_messages (id INTEGER AUTO_INCREMENT, chat_id INTEGER, message TEXT, sender VARCHAR(50), created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, PRIMARY KEY (id)) ENGINE=InnoDB;
+          
+          SET FOREIGN_KEY_CHECKS = 1;
+          "
+          echo "All tables created successfully without foreign key constraints"

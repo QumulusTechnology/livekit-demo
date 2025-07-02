@@ -1,0 +1,33 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.tenant.name }}-console
+  namespace: {{ .Values.tenant.namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/backend-protocol: HTTP
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      chunked_transfer_encoding off;
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 0;
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  - host: {{ .Values.ingress.console.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: minio-console
+            port:
+              number: 9090
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - {{ .Values.ingress.console.host }}
+    secretName: {{ .Values.ingress.console.tlsSecret }}
+{{- end }}

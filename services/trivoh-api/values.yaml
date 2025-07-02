@@ -1,0 +1,128 @@
+image:
+  registry: repo.livekit-demo.cloudportal.app
+  repository: library/trivoh-api
+  tag: latest
+  pullPolicy: Always
+
+replicaCount: 1  # Single replica to avoid schema sync deadlocks
+
+service:
+  type: ClusterIP
+  port: 3030
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/websocket-services: trivoh-api
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: api.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: trivoh-api-tls
+      hosts:
+        - api.livekit-demo.cloudportal.app
+
+env:
+  - name: LIVEKIT_URL
+    value: "wss://livekit.livekit-demo.cloudportal.app"
+  - name: LIVEKIT_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: livekit-credentials
+        key: api-key
+  - name: LIVEKIT_API_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: livekit-credentials
+        key: api-secret
+  - name: REDIS_URL
+    value: "redis://redis-redis-cluster.redis.svc.cluster.local:6379"
+  - name: NODE_ENV
+    value: "development"
+  - name: PORT
+    value: "3030"
+  - name: DB_CONNECTION
+    value: "mysql"
+  - name: DB_HOST
+    value: "mysql"
+  - name: DB_HOST_LOCAL
+    value: "mysql"
+  - name: DB_USER
+    value: "trivoh_user"
+  - name: DB_PASS
+    valueFrom:
+      secretKeyRef:
+        name: mysql-credentials
+        key: password
+  - name: DB_PASS_LOCAL
+    valueFrom:
+      secretKeyRef:
+        name: mysql-credentials
+        key: password
+  - name: DB_PORT
+    value: "3306"
+  - name: DB_NAME
+    value: "trivoh"
+  - name: DB_SYNC
+    value: "false"
+  - name: DB_FOREIGN_KEY_CHECKS
+    value: "0"
+  - name: SEQUELIZE_DISABLE_FK
+    value: "true"
+  - name: DISABLE_SEQUELIZE_SYNC
+    value: "true"
+  - name: NODE_ENV
+    value: "production"
+  - name: SEQUELIZE_DISABLE_SYNC
+    value: "true"
+  - name: FORCE_DB_SYNC
+    value: "false"
+  - name: DB_MIGRATE
+    value: "false"
+  - name: SEQUELIZE_MIGRATE
+    value: "false"
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1  # Reduced to avoid migration conflicts
+  maxReplicas: 15
+  targetCPUUtilizationPercentage: 70
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Prometheus monitoring configuration
+monitoring:
+  enabled: true
+  port: 9092
+  path: /metrics
+
+# Pod annotations for Prometheus scraping
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "9092"
+  prometheus.io/path: "/metrics"
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: trivoh-api
+  interval: 30s
+  scrapeTimeout: 10s

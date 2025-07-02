@@ -1,0 +1,5 @@
+apiVersion: v2
+name: redis-monitoring
+description: Redis monitoring manifests for ServiceMonitor
+version: 0.1.0
+appVersion: "8.0"

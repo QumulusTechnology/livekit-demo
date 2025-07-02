@@ -1,0 +1,9 @@
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: minio-qumulus-ca-issuer
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  ca:
+    secretName: minio-qumulus-ca-tls

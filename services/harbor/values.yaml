@@ -1,0 +1,29 @@
+# Harbor Prometheus metrics configuration
+metrics:
+  enabled: true
+  core:
+    path: /api/v2.0/metrics
+    port: 8080
+  registry:
+    path: /metrics
+    port: 8080
+  
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: true
+  namespace: harbor
+  interval: 30s
+  path: /api/v2.0/metrics
+
+# Enable metrics on Harbor components
+core:
+  metrics:
+    enabled: true
+    path: /api/v2.0/metrics
+    port: 8080
+
+registry:
+  metrics:
+    enabled: true
+    path: /metrics
+    port: 5001

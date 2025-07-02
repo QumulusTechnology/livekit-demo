@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: <path:argocd:argocd-vars#cluster_issuer>
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      chunked_transfer_encoding off;
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/server-snippet: |
+      client_max_body_size 0;
+  name: qumulus-api
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: s3api.<path:argocd:argocd-vars#region>.<path:argocd:argocd-vars#domain>
+    http:
+      paths:
+      - backend:
+          service:
+            name: minio
+            port:
+              number: 443
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - s3api.<path:argocd:argocd-vars#region>.<path:argocd:argocd-vars#domain>
+    secretName: minio-api-cert

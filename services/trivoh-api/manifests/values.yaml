@@ -1,0 +1,111 @@
+# Default values for trivoh-api
+replicaCount: 2
+
+image:
+  repository: library/trivoh-api
+  pullPolicy: Always
+  tag: "latest"
+  registry: repo.livekit-demo.cloudportal.app
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: trivoh-api
+  hosts:
+    - host: api.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: trivoh-api-tls
+      hosts:
+        - api.livekit-demo.cloudportal.app
+  
+database:
+  host: mysql
+  port: 3306
+  name: trivoh
+  user: trivoh_user
+  # Password from Kubernetes secret
+  passwordSecret:
+    name: mysql-credentials
+    key: password
+
+# HPA configuration
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Resource limits
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Environment variables
+env:
+  - name: LIVEKIT_URL
+    value: "wss://livekit.livekit-demo.cloudportal.app"
+  - name: LIVEKIT_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: livekit-credentials
+        key: api-key
+  - name: LIVEKIT_API_SECRET
+    valueFrom:
+      secretKeyRef:
+        name: livekit-credentials
+        key: api-secret
+  - name: REDIS_URL
+    value: "redis://redis-redis-cluster.redis.svc.cluster.local:6379"
+  - name: NODE_ENV
+    value: "development"
+  - name: PORT
+    value: "3030"
+  - name: DB_CONNECTION
+    value: "mysql"
+  - name: DB_HOST
+    value: "mysql"
+  - name: DB_HOST_LOCAL
+    value: "mysql"
+  - name: DB_USER
+    value: "trivoh_user"
+  - name: DB_PASS
+    valueFrom:
+      secretKeyRef:
+        name: mysql-credentials
+        key: password
+  - name: DB_PASS_LOCAL
+    valueFrom:
+      secretKeyRef:
+        name: mysql-credentials
+        key: password
+  - name: DB_PORT
+    value: "3306"
+  - name: DB_NAME
+    value: "trivoh"
+  - name: DB_SYNC
+    value: "false"

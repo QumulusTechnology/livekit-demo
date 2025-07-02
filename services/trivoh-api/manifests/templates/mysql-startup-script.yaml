@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-startup-script
+  namespace: {{ .Release.Namespace }}
+data:
+  startup.sql: |
+    SET GLOBAL foreign_key_checks = 0;
+    SET GLOBAL sql_mode = '';
+    SET GLOBAL innodb_force_recovery = 0;
+    
+    -- Create a user that cannot modify schema
+    DROP USER IF EXISTS 'trivoh_readonly'@'%';
+    CREATE USER 'trivoh_readonly'@'%' IDENTIFIED BY '$MYSQL_PASSWORD';
+    GRANT SELECT, INSERT, UPDATE, DELETE ON trivoh.* TO 'trivoh_readonly'@'%';
+    FLUSH PRIVILEGES;

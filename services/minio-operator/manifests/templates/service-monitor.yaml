@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: minio-operator-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: minio-operator
+    component: metrics
+spec:
+  selector:
+    matchLabels:
+      name: minio-operator
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /metrics
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}

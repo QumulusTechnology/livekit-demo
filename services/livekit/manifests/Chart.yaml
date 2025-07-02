@@ -1,0 +1,5 @@
+apiVersion: v2
+name: livekit-manifests
+description: Additional manifests for LiveKit server
+type: application
+version: 0.1.0

@@ -1,0 +1,84 @@
+image:
+  registry: docker.io
+  repository: bitnami/redis-cluster
+  tag: 8.0.2-debian-12-r2
+
+networkPolicy:
+  enabled: false
+
+# Ultra-high performance Redis cluster for 1000+ participants
+cluster:
+  init: true
+  nodes: 3        # Reduced back to 3 for stability
+  replicas: 1     # Add replicas for reliability
+  
+usePassword: false
+
+# High-performance storage
+persistence:
+  enabled: true
+  size: 8Gi       # Increased storage per node
+  storageClass: "" # Use default fast storage
+
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: redis
+    interval: 30s
+
+# Optimized Redis configuration for 1000+ concurrent connections
+redis:
+  resources:
+    requests:
+      cpu: "1000m"    # 4x more CPU
+      memory: "2Gi"   # 4x more memory
+    limits:
+      cpu: "2000m"    # Higher limits for bursts
+      memory: "4Gi"
+  
+  # Ultra-performance Redis configuration
+  configmap: |
+    # Network optimizations
+    tcp-keepalive 60
+    tcp-backlog 32768
+    
+    # Memory optimizations
+    maxmemory-policy allkeys-lru
+    save 900 1
+    save 300 10
+    save 60 10000
+    
+    # Connection optimizations for 1000+ clients
+    timeout 300
+    maxclients 10000
+    
+    # Performance optimizations
+    hash-max-ziplist-entries 512
+    hash-max-ziplist-value 64
+    set-max-intset-entries 512
+    zset-max-ziplist-entries 128
+    zset-max-ziplist-value 64
+    
+    # Latency optimizations
+    latency-monitor-threshold 100
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+# Node affinity for Redis
+# nodeSelector:
+#   workload-type: livekit-compute
+
+# Pod anti-affinity for Redis distribution
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - redis-cluster
+        topologyKey: kubernetes.io/hostname

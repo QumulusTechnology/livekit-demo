@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: meet-client
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "4"
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/meet-client/manifests
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/meet-client
+      ref: vals
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: meet-client
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

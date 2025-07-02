@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: meet-client-metrics
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: meet-client
+    component: metrics
+spec:
+  selector:
+    matchLabels:
+      app: meet-client
+  endpoints:
+  - port: http
+    interval: 30s
+    path: /api/metrics
+    scrapeTimeout: 10s
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}

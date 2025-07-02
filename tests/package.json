@@ -1,0 +1,23 @@
+{
+  "name": "livekit-demo-tests",
+  "version": "1.0.0",
+  "description": "Automated testing suite for LiveKit Demo Platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "node run-all-tests.js",
+    "test:health": "./health-checks.sh",
+    "test:argocd": "node argocd-apps-tests.js",
+    "test:comprehensive": "node comprehensive-service-tests.js",
+    "test:frontend": "node frontend-tests.js",
+    "test:webrtc": "node webrtc-tests.js",
+    "test:integration": "node integration-tests.js",
+    "test:load": "node load-tests.js",
+    "test:all": "node run-all-tests.js"
+  },
+  "dependencies": {
+    "puppeteer": "*"
+  },
+  "keywords": ["testing", "livekit", "webrtc", "puppeteer"],
+  "author": "LiveKit Demo Team",
+  "license": "MIT"
+}

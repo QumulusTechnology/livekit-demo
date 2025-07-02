@@ -1,0 +1,150 @@
+replicaCount: 8  # Reduced by 2 as requested
+
+# Use direct image instead of Harbor proxy for now
+image:
+  repository: livekit/livekit-server
+  tag: v1.9.0
+
+livekit:
+  prometheus_port: 6789
+  rtc:
+    tcp_port: 7881
+    port_range_start: 50000
+    port_range_end: 60000
+    use_external_ip: true
+    # Ultra-high concurrency optimizations
+    ice_candidate_pool_size: 15
+    turn_server_timeout: 20s
+    tcp_listen_port: 7881
+    use_ice_lite: true
+    # Advanced network optimizations for 1000+ participants
+    stun_servers:
+      - global.stun.twilio.com:3478
+      - stun.l.google.com:19302
+    # Connection optimizations
+    max_track_subscribers: 1000
+    subscriber_bandwidth_limit: 50000000  # 50Mbps per subscriber
+  redis:
+    cluster_addresses:
+      - redis-redis-cluster-0.redis-redis-cluster-headless.redis.svc.cluster.local:6379
+      - redis-redis-cluster-1.redis-redis-cluster-headless.redis.svc.cluster.local:6379
+      - redis-redis-cluster-2.redis-redis-cluster-headless.redis.svc.cluster.local:6379
+    # Redis optimizations for high concurrency
+    pool_size: 15
+    max_idle: 10
+  # API keys from Kubernetes secret (do not hardcode credentials)
+  # keys:
+  #   test: <from-kubernetes-secret>
+  # S3/MinIO storage configuration for recordings
+  s3:
+    endpoint: http://minio.minio-tenant.svc.cluster.local:80
+    bucket: livekit-recordings
+    region: us-east-1
+    force_path_style: true
+  # Ultra-performance optimizations
+  log_level: error  # Minimal logging for maximum performance
+  development: false
+  # Room-level optimizations
+  room:
+    max_participants: 1000
+    participant_timeout: 60s
+    track_timeout: 30s
+  
+  # Enable egress for recording and streaming
+  egress:
+    enabled: true
+
+# Disable built-in ingress - will add custom manifest later
+loadBalancer:
+  type: disable
+  servicePort: 80
+
+# Ultra-aggressive autoscaling for 1000+ participants
+autoscaling:
+  enabled: true
+  minReplicas: 8  # Reduced to fit within node limits (10 worker nodes max)
+  maxReplicas: 10  # Limited by host ports and worker node count
+  targetCPUUtilizationPercentage: 50  # Lower threshold for faster scaling
+  targetMemoryUtilizationPercentage: 60
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # Slower scale-down to handle traffic spikes
+      policies:
+      - type: Percent
+        value: 5  # Very conservative scale-down
+        periodSeconds: 120
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Instant scale-up
+      policies:
+      - type: Percent
+        value: 200  # Double capacity immediately
+        periodSeconds: 10
+      - type: Pods
+        value: 10  # Add 10 pods at once
+        periodSeconds: 10
+
+# High-density resource allocation optimized for 1000+ participants
+resources:
+  limits:
+    cpu: 4000m     # Reduced per-pod to allow more pods
+    memory: 8Gi    # Optimized memory allocation
+  requests:
+    cpu: 2000m     # Lower requests for better bin packing
+    memory: 4Gi
+
+# Priority and affinity - disable for now to avoid scheduling issues
+# priorityClassName: livekit-high-priority
+
+# Remove node selector to allow scheduling on any node
+# nodeSelector:
+#   workload-type: livekit-compute
+
+# Pod affinity for optimal distribution
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+    - weight: 100
+      podAffinityTerm:
+        labelSelector:
+          matchExpressions:
+          - key: app.kubernetes.io/name
+            operator: In
+            values:
+            - livekit-server
+        topologyKey: kubernetes.io/hostname
+
+# Performance tuning - disable host network for scalability
+podHostNetwork: false
+
+# Disable host ports to allow multiple pods per node
+hostPorts:
+  rtc-tcp: 0  # Set to 0 to disable
+  metrics: 0  # Set to 0 to disable
+
+# Security context optimizations
+securityContext:
+  runAsNonRoot: false
+  runAsUser: 0
+  capabilities:
+    add:
+    - NET_ADMIN
+    - SYS_NICE
+
+# Pod disruption budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 6
+
+serviceMonitor:
+  create: true
+
+# Environment variables from secrets
+extraEnvFrom:
+  - secretRef:
+      name: livekit-minio-credentials
+
+# Additional annotations for performance
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "6789"
+  scheduler.alpha.kubernetes.io/critical-pod: ""

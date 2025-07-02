@@ -1,0 +1,76 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "trivoh-api.fullname" . }}-db-init
+  labels:
+    {{- include "trivoh-api.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "trivoh-api.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: db-init
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: db-init
+        image: mysql:8.0
+        env:
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: password
+        command:
+          - /bin/bash
+          - -c
+          - |
+            set -e
+            echo "Waiting for MySQL to be ready..."
+            until mysql -h{{ .Values.database.host }} -u{{ .Values.database.user }} -p$MYSQL_PASSWORD -e "SELECT 1" &> /dev/null; do
+              echo "MySQL is not ready yet. Waiting..."
+              sleep 2
+            done
+            echo "MySQL is ready. Creating database and tables..."
+            
+            mysql -h{{ .Values.database.host }} -u{{ .Values.database.user }} -p$MYSQL_PASSWORD <<'EOF'
+            CREATE DATABASE IF NOT EXISTS {{ .Values.database.name }};
+            USE {{ .Values.database.name }};
+            
+            -- Create tables in correct order to avoid foreign key issues
+            CREATE TABLE IF NOT EXISTS subscriptions (
+              id INTEGER AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(255),
+              user_id INTEGER,
+              status VARCHAR(50),
+              created_at DATETIME NOT NULL,
+              updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB;
+            
+            CREATE TABLE IF NOT EXISTS users (
+              id INTEGER AUTO_INCREMENT PRIMARY KEY,
+              email VARCHAR(255),
+              name VARCHAR(255),
+              created_at DATETIME NOT NULL,
+              updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB;
+            
+            CREATE TABLE IF NOT EXISTS businesses (
+              id INTEGER AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(255),
+              created_at DATETIME NOT NULL,
+              updated_at DATETIME NOT NULL
+            ) ENGINE=InnoDB;
+            
+            -- Add foreign key constraints if needed
+            ALTER TABLE subscriptions ADD CONSTRAINT fk_subscription_user 
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE;
+            
+            SHOW TABLES;
+            EOF
+            
+            echo "Database initialization completed successfully"

@@ -1,0 +1,60 @@
+{
+  "timestamp": "2025-07-04_14-17-40",
+  "test_type": "health_checks",
+  "tests": [
+    {
+      "name": "ArgoCD Health",
+      "status": "PASS",
+      "details": "API endpoint responding with 200",
+      "duration": "0s"
+    },
+    {
+      "name": "LiveKit Server Health",
+      "status": "PASS",
+      "details": "Server endpoint is accessible",
+      "duration": "0s"
+    },
+    {
+      "name": "LiveKit Frontend Health",
+      "status": "FAIL",
+      "details": "Frontend not accessible or returning error",
+      "duration": "0s"
+    },
+    {
+      "name": "Grafana Health",
+      "status": "PASS",
+      "details": "Health endpoint responding with 200",
+      "duration": "0s"
+    },
+    {
+      "name": "Kubernetes Pod Health",
+      "status": "FAIL",
+      "details": "14 pods in failed state",
+      "duration": "0s"
+    },
+    {
+      "name": "LiveKit Pods Health",
+      "status": "PASS",
+      "details": "32 pods running in livekit namespace",
+      "duration": "1s"
+    },
+    {
+      "name": "Redis Cluster Health",
+      "status": "PASS",
+      "details": "6 Redis pods running",
+      "duration": "0s"
+    },
+    {
+      "name": "Ingress Controller Health",
+      "status": "PASS",
+      "details": "1 ingress pods running",
+      "duration": "0s"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 6,
+    "failed": 2,
+    "success_rate": "75.0%"
+  }
+}

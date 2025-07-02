@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: minio-console-creds
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  refreshInterval: "0"
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: minio-random-password
+  target:
+    name: qumulus-user-0
+    template:
+      data:
+        CONSOLE_ACCESS_KEY: console
+        CONSOLE_SECRET_KEY: "{{ .password }}"

@@ -1,0 +1,91 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kubernetes-resources-alerts
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: kubernetes-resources
+      rules:
+        - alert: KubeCPUOvercommit
+          expr: |-
+            sum by (cluster) (namespace_cpu:kube_pod_container_resource_requests:sum{job="integrations/kubernetes/kube-state-metrics"}) - (sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="cpu"}) - max by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="cpu"})) > 0 and (sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="cpu"}) - max by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="cpu"})) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            description: Cluster {{`{{`}} $labels.cluster {{`}}`}} has overcommitted CPU resource requests for Pods by {{`{{`}} $value {{`}}`}} CPU shares and cannot tolerate node failure.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubecpuovercommit
+            summary: Cluster has overcommitted CPU resource requests.
+        - alert: KubeMemoryOvercommit
+          expr: |-
+            sum by (cluster) (namespace_memory:kube_pod_container_resource_requests:sum) - (sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="memory"}) - max by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="memory"})) > 0 and (sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="memory"}) - max by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="memory"})) > 0
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            description: Cluster {{`{{`}} $labels.cluster {{`}}`}} has overcommitted memory resource requests for Pods by {{`{{`}} $value | humanize {{`}}`}} bytes and cannot tolerate node failure.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubememoryovercommit
+            summary: Cluster has overcommitted memory resource requests.
+        - alert: KubeCPUQuotaOvercommit
+          expr: |-
+            sum by (cluster) (min without (resource) (kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",resource=~"(cpu|requests.cpu)",type="hard"})) / sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="cpu"}) > 1.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            description: Cluster {{`{{`}} $labels.cluster {{`}}`}}  has overcommitted CPU resource requests for Namespaces.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubecpuquotaovercommit
+            summary: Cluster has overcommitted CPU resource requests.
+        - alert: KubeMemoryQuotaOvercommit
+          expr: |-
+            sum by (cluster) (min without (resource) (kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",resource=~"(memory|requests.memory)",type="hard"})) / sum by (cluster) (kube_node_status_allocatable{job="integrations/kubernetes/kube-state-metrics",resource="memory"}) > 1.5
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            description: Cluster {{`{{`}} $labels.cluster {{`}}`}}  has overcommitted memory resource requests for Namespaces.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubememoryquotaovercommit
+            summary: Cluster has overcommitted memory resource requests.
+        - alert: KubeQuotaAlmostFull
+          expr: |-
+            kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="hard"} > 0) > 0.9 < 1
+          for: 15m
+          labels:
+            severity: info
+          annotations:
+            description: Namespace {{`{{`}} $labels.namespace {{`}}`}} is using {{`{{`}} $value | humanizePercentage {{`}}`}} of its {{`{{`}} $labels.resource {{`}}`}} quota.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubequotaalmostfull
+            summary: Namespace quota is going to be full.
+        - alert: KubeQuotaFullyUsed
+          expr: |-
+            kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="hard"} > 0) == 1
+          for: 15m
+          labels:
+            severity: info
+          annotations:
+            description: Namespace {{`{{`}} $labels.namespace {{`}}`}} is using {{`{{`}} $value | humanizePercentage {{`}}`}} of its {{`{{`}} $labels.resource {{`}}`}} quota.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubequotafullyused
+            summary: Namespace quota is fully used.
+        - alert: KubeQuotaExceeded
+          expr: |-
+            kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="used"} / ignoring (instance, job, type) (kube_resourcequota{job="integrations/kubernetes/kube-state-metrics",type="hard"} > 0) > 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            description: Namespace {{`{{`}} $labels.namespace {{`}}`}} is using {{`{{`}} $value | humanizePercentage {{`}}`}} of its {{`{{`}} $labels.resource {{`}}`}} quota.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubequotaexceeded
+            summary: Namespace quota has exceeded the limits.
+        - alert: CPUThrottlingHigh
+          expr: |-
+            sum by (container, pod, namespace, cluster) (increase(container_cpu_cfs_throttled_periods_total{container!=""}[5m])) / sum by (container, pod, namespace, cluster) (increase(container_cpu_cfs_periods_total[5m])) > (25 / 100)
+          for: 15m
+          labels:
+            severity: info
+          annotations:
+            description: '{{`{{`}} $value | humanizePercentage {{`}}`}} throttling of CPU in namespace {{`{{`}} $labels.namespace {{`}}`}} for container {{`{{`}} $labels.container {{`}}`}} in pod {{`{{`}} $labels.pod {{`}}`}}.'
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/cputhrottlinghigh
+            summary: Processes experience elevated CPU throttling.

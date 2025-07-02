@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: node-rules
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: node.rules
+      rules:
+        - record: 'node_namespace_pod:kube_pod_info:'
+          expr: |-
+            topk by (cluster, namespace, pod) (1, max by (cluster, node, namespace, pod) (label_replace(kube_pod_info{job="integrations/kubernetes/kube-state-metrics",node!=""}, "pod", "$1", "pod", "(.*)")))
+        - record: node:node_num_cpu:sum
+          expr: |-
+            count by (cluster, node) (node_cpu_seconds_total{job="integrations/node_exporter",mode="idle"} * on (namespace, pod, cluster) group_left (node) topk by (namespace, pod, cluster) (1, node_namespace_pod:kube_pod_info:))
+        - record: :node_memory_MemAvailable_bytes:sum
+          expr: |-
+            sum by (cluster) (node_memory_MemAvailable_bytes{job="integrations/node_exporter"} or (node_memory_Buffers_bytes{job="integrations/node_exporter"} + node_memory_Cached_bytes{job="integrations/node_exporter"} + node_memory_MemFree_bytes{job="integrations/node_exporter"} + node_memory_Slab_bytes{job="integrations/node_exporter"}))
+        - record: node:node_cpu_utilization:ratio_rate5m
+          expr: |-
+            avg by (cluster, node) (sum without (mode) (rate(node_cpu_seconds_total{job="integrations/node_exporter",mode!="idle",mode!="iowait",mode!="steal"}[5m])))
+        - record: cluster:node_cpu:ratio_rate5m
+          expr: |-
+            avg by (cluster) (node:node_cpu_utilization:ratio_rate5m)
+
