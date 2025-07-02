@@ -21,9 +21,4 @@ spec:
             ingressTemplate:
               metadata:
                 annotations:
-                  nginx.ingress.kubernetes.io/rewrite-target: /
-              spec:
-                rules:
-                - http:
-                    paths:
-                    - pathType: Prefix
+                  nginx.ingress.kubernetes.io/ssl-redirect: "false"
