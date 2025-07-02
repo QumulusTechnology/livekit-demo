@@ -1,0 +1,20 @@
+# apiVersion: monitoring.coreos.com/v1
+# kind: PrometheusRule
+# metadata:
+#   name: kubernetes-system-kube-proxy-alerts
+#   labels:
+#     app: grafana-agent
+#     tenant: {{ .Values.tenant }}
+# spec:
+#   groups:
+#     - name: kubernetes-system-kube-proxy
+#       rules:
+#         - alert: KubeProxyDown
+#           expr: absent(up{job="kube-proxy"} == 1)
+#           for: 15m
+#           labels:
+#             severity: critical
+#           annotations:
+#             description: KubeProxy has disappeared from Prometheus target discovery.
+#             runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeproxydown
+#             summary: Target disappeared from Prometheus target discovery.

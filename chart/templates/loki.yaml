@@ -1,0 +1,40 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki
+  namespace: argocd
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://grafana.github.io/helm-charts
+      targetRevision: 0.80.5
+      chart: loki-distributed
+      helm:
+        valueFiles:
+          - $vals/services/loki/values.yaml
+        valuesObject:
+          gateway:
+            ingress:
+              hosts:
+                - host: gateway-loki.{{ .Values.domain }}
+                  paths:
+                    - path: /
+                      pathType: Prefix
+              tls:
+                - secretName: loki-gateway-tls
+                  hosts:
+                    - gateway-loki.{{ .Values.domain }}
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: loki
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true

@@ -1,0 +1,85 @@
+# Cluster settings
+cluster:
+  name: management-cluster
+
+externalServices:
+  prometheus:
+    hostKey: "mimir_host"
+    queryEndpoint: /prometheus/api/v1/query
+    writeEndpoint: /api/v1/push
+    tenantIdKey: "mimir_tenant_id"
+    basicAuth:
+      usernameKey: "mimir_username"
+      passwordKey: "mimir_password"
+    secret:
+      create: false
+      name: grafana-agent-credentials
+      namespace: "grafana-agent"
+  loki:
+    hostKey: "loki_host"
+    writeEndpoint: /loki/api/v1/push
+    tenantIdKey: "loki_tenant_id"
+    basicAuth:
+      usernameKey: "loki_username"
+      passwordKey: "loki_password"
+    secret:
+      create: false
+      name: grafana-agent-credentials
+      namespace: "grafana-agent"
+logs:
+  enabled: true
+traces:
+  enabled: false
+grafana-agent:
+  crds:
+    create: false
+prometheus-operator-crds:
+  enabled: false
+opencost:
+  enabled: false
+metrics:
+  kube-state-metrics:
+    enabled: true
+    allowList: null
+  node-exporter:
+    enabled: true
+    allowList: null
+  apiserver:
+    enabled: true
+    allowList: null
+  kubelet:
+    enabled: true
+    allowList: null
+  kubeControllerManager:
+    enabled: true
+    allowList: null
+  kubeScheduler:
+    enabled: true
+    allowList: null
+  kubeProxy:
+    enabled: true
+    allowList: null
+  cadvisor:
+    enabled: true
+    allowList: null
+    extraMetricRelabelingRules: |-
+      rule {
+        action = "replace"
+        source_labels = ["instance"]
+        target_label = "node"
+      }
+
+extraConfig: |-
+    mimir.rules.kubernetes "main" {
+      tenant_id = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_tenant_id"])
+      address = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_host"])
+      basic_auth {
+        username = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_username"])
+        password = remote.kubernetes.secret.metrics_service.data["mimir_password"]
+      }
+      rule_selector {
+        match_labels = {
+            tenant = nonsensitive(remote.kubernetes.secret.metrics_service.data["mimir_tenant_id"]),
+        }
+      }
+    }

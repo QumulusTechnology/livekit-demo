@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: core-services
+  sources:
+
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+
+    - repoURL: https://charts.jetstack.io
+      targetRevision: v1.18.2
+      chart: cert-manager
+      helm:
+        valueFiles:
+          - $vals/services/cert-manager/values.yaml
+
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      path: services/cert-manager/manifests
+      helm:
+        valuesObject:
+          letsencrypt_email: {{ .Values.letsencrypt_email }}
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: true
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true

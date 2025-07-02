@@ -1,0 +1,7 @@
+# Default values for cert-manager-issuers.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+letsencrypt_email: "email@domain.com"
+domain: "domain.com"
+tenant: "master"

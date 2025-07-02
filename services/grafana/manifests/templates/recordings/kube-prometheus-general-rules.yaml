@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-prometheus-general-rules
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: kube-prometheus-general.rules
+      rules:
+        - record: count:up1
+          expr: count without (instance, pod, node) (up == 1)
+        - record: count:up0
+          expr: count without (instance, pod, node) (up == 0)

@@ -1,0 +1,59 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-apiserver-slos-alerts
+  labels:
+    app: grafana-agent
+    tenant: {{ .Values.tenant }}
+spec:
+  groups:
+    - name: kube-apiserver-slos
+      rules:
+        - alert: KubeAPIErrorBudgetBurn
+          expr: |-
+            sum by (cluster) (apiserver_request:burnrate1h) > (14.4 * 0.01) and sum by (cluster) (apiserver_request:burnrate5m) > (14.4 * 0.01)
+          for: 2m
+          labels:
+            long: 1h
+            severity: critical
+            short: 5m
+          annotations:
+            description: The API server is burning too much error budget.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeapierrorbudgetburn
+            summary: The API server is burning too much error budget.
+        - alert: KubeAPIErrorBudgetBurn
+          expr: |-
+            sum by (cluster) (apiserver_request:burnrate6h) > (6 * 0.01) and sum by (cluster) (apiserver_request:burnrate30m) > (6 * 0.01)
+          for: 15m
+          labels:
+            long: 6h
+            severity: critical
+            short: 30m
+          annotations:
+            description: The API server is burning too much error budget.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeapierrorbudgetburn
+            summary: The API server is burning too much error budget.
+        - alert: KubeAPIErrorBudgetBurn
+          expr: |-
+            sum by (cluster) (apiserver_request:burnrate1d) > (3 * 0.01) and sum by (cluster) (apiserver_request:burnrate2h) > (3 * 0.01)
+          for: 1h
+          labels:
+            long: 1d
+            severity: warning
+            short: 2h
+          annotations:
+            description: The API server is burning too much error budget.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeapierrorbudgetburn
+            summary: The API server is burning too much error budget.
+        - alert: KubeAPIErrorBudgetBurn
+          expr: |-
+            sum by (cluster) (apiserver_request:burnrate3d) > (1 * 0.01) and sum by (cluster) (apiserver_request:burnrate6h) > (1 * 0.01)
+          for: 3h
+          labels:
+            long: 3d
+            severity: warning
+            short: 6h
+          annotations:
+            description: The API server is burning too much error budget.
+            runbook_url: https://runbooks.prometheus-operator.dev/runbooks/kubernetes/kubeapierrorbudgetburn
+            summary: The API server is burning too much error budget.
