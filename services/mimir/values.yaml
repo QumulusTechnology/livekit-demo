@@ -1,7 +1,7 @@
 metaMonitoring:
   enabled: true
   dashboards:
-    enabled: true
+    enabled: false
   serviceMonitor:
     enabled: true
     clusterLabel: "management-cluster"
