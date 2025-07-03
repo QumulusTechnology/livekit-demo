@@ -10,11 +10,12 @@ livekit:
     use_external_ip: false
   redis: {}
   keys:
-    test: teasr4123
+    {}
 
 # Set this option to true if you want to store your API keys in a secret instead of the config file
 storeKeysInSecret:
-  enabled: false
+  enabled: true
+  existingSecret: "livekit-api-keys"
 
 nameOverride: ""
 fullnameOverride: ""
