@@ -15,7 +15,9 @@ livekit:
 # Set this option to true if you want to store your API keys in a secret instead of the config file
 storeKeysInSecret:
   enabled: true
-  existingSecret: "livekit-api-keys"
+  existingSecret: ""
+  keys:
+    test: Test123123
 
 nameOverride: ""
 fullnameOverride: ""
