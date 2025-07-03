@@ -10,6 +10,8 @@ livekit:
     use_external_ip: true
   redis:
     address: redis.redis.svc.cluster.local:6379
+  keys:
+    test: teasr4123
 
 # Set this option to true if you want to store your API keys in a secret instead of the config file
 storeKeysInSecret:
