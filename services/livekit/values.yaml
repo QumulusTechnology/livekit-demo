@@ -8,8 +8,7 @@ livekit:
     port_range_start: 50000
     port_range_end: 60000
     use_external_ip: false
-  redis:
-    address: redis-redis-cluster.redis.svc.cluster.local:6379
+  redis: {}
   keys:
     test: teasr4123
 
