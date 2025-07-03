@@ -13,7 +13,7 @@ livekit:
 
 # Set this option to true if you want to store your API keys in a secret instead of the config file
 storeKeysInSecret:
-  enabled: true
+  enabled: false
 
 nameOverride: ""
 fullnameOverride: ""

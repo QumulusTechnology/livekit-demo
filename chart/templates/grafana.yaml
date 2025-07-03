@@ -40,6 +40,7 @@ spec:
     syncOptions:
       - CreateNamespace=true
       - IncludeCRDs=true
+      - ServerSideApply=true
   ignoreDifferences:
     - group: "grafana.integreatly.org"
       kind: "GrafanaDashboard"
