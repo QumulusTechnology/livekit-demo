@@ -1,33 +1,32 @@
 # LiveKit Ingress configuration
 replicaCount: 2
 
-# Direct configuration for livekit-ingress
-defaultConfig:
+# LiveKit Ingress server configuration
+ingress:
   api_key: test
   api_secret: Test123123
   ws_url: wss://livekit.livekit-demo.cloudportal.app
   redis:
     address: redis-redis-cluster.redis.svc.cluster.local:6379
     db: 0
+  # Keep other default values
+  logging:
+    level: info
+  health_port: 7888
+  prometheus_port: 7889
+  http_relay_port: 9090
+  rtmp_port: 1935
+  whip_port: 8080
+  rtc_config:
+    use_external_ip: true
+    udp_port: 7885
+  cpu_cost:
+    rtmp_cpu_cost: 2
+    whip_cpu_cost: 2
+    whip_bypass_transcoding_cpu_cost: 0.1
 
-# Kubernetes Ingress configuration for RTMP/WHIP endpoints
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    nginx.ingress.kubernetes.io/websocket-services: "true"
-  hosts:
-    - host: ingress.livekit-demo.cloudportal.app
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: livekit-ingress-tls
-      hosts:
-        - ingress.livekit-demo.cloudportal.app
+# Note: This helm chart doesn't support Kubernetes Ingress resources
+# The service is exposed via LoadBalancer type service on ports 1935 (RTMP), 7888 (HTTP), 8080 (WHIP)
 
 # Autoscaling configuration
 autoscaling:
