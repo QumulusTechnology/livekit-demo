@@ -67,3 +67,9 @@
   - Server chart: `livekit-server`
   - Ingress chart: `ingress` (latest: 1.2.2)
 - Always verify chart versions exist before using: `helm search repo <repo>/<chart> --versions`
+
+## Helm Chart Best Practices
+- **IMPORTANT**: When configuring Helm charts, only include values that differ from defaults
+- Do not copy all values from the chart's default values.yaml
+- This approach makes configurations easier to read and maintain
+- Focus only on the specific customizations needed for the deployment

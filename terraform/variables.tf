@@ -37,7 +37,7 @@ variable "dns_nameservers" {
 variable "node_flavor_name" {
   description = "Name of the flavor for worker nodes"
   type        = string
-  default     = "c1.xlarge"
+  default     = "c1.xxlarge"
 }
 
 variable "master_flavor_name" {
@@ -55,7 +55,7 @@ variable "docker_volume_size" {
 variable "min_node_count" {
   description = "Minimum number of nodes for auto-scaling"
   type        = number
-  default     = 3
+  default     = 6
 }
 
 variable "max_node_count" {
