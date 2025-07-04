@@ -12,24 +12,10 @@ livekit:
   keys:
     test: ThisIsAVeryLongSecretKeyForLiveKitThatIsAtLeast32Characters
 
-# Ingress configuration
-ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
-    nginx.ingress.kubernetes.io/websocket-services: "true"
-  hosts:
-    - host: livekit.livekit-demo.cloudportal.app
-      paths:
-        - path: /
-          pathType: Prefix
-  tls:
-    - secretName: livekit-tls
-      hosts:
-        - livekit.livekit-demo.cloudportal.app
+# Service configuration - use ClusterIP for nginx ingress
+loadBalancer:
+  type: ClusterIP
+  servicePort: 80
 
 # Autoscaling configuration
 autoscaling:
