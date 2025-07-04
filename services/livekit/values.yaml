@@ -9,10 +9,6 @@ livekit:
   redis:
     address: redis-redis-cluster.redis.svc.cluster.local:6379
     db: 0
-
-# Set this option to true if you want to store your API keys in a secret instead of the config file
-storeKeysInSecret:
-  enabled: true
   keys:
     test: Test123123
 
