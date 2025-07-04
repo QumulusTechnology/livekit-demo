@@ -10,7 +10,7 @@ spec:
   project: core-services
   sources:
     - repoURL: https://cloudnative-pg.github.io/charts
-      chart: cnpg-system
+      chart: cloudnative-pg
       targetRevision: 0.22.0
       
   destination:
