@@ -2,6 +2,6 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-letsencrypt_email: "email@domain.com"
-domain: "domain.com"
+letsencrypt_email: "livekit-demo@letsencrypt.cloudportal.app"
+domain: "livekit-demo.cloudportal.app"
 tenant: "master"
