@@ -1,0 +1,19 @@
+# MinIO Operator configuration
+# Only include values that differ from defaults
+
+# Install CRDs
+installCRDs: true
+
+# Console configuration for MinIO operator UI
+console:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    host: minio-console.livekit-demo.cloudportal.app
+    tls:
+      - secretName: minio-console-tls
+        hosts:
+          - minio-console.livekit-demo.cloudportal.app
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt

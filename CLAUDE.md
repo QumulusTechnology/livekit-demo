@@ -73,3 +73,6 @@
 - Do not copy all values from the chart's default values.yaml
 - This approach makes configurations easier to read and maintain
 - Focus only on the specific customizations needed for the deployment
+- **CRITICAL**: All Kubernetes resources (including ingresses) should be managed via Helm charts
+- Never create separate manifests or monkey patch resources unless absolutely necessary
+- If a resource is missing, configure it through the Helm chart's values.yaml file

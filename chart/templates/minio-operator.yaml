@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: core-services
+  sources:
+    - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
+      targetRevision: main
+      ref: vals
+      
+    - repoURL: https://operator.min.io
+      targetRevision: 7.1.1
+      chart: operator
+      helm:
+        valueFiles:
+          - $vals/services/minio-operator/values.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: minio-operator
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+      allowEmpty: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

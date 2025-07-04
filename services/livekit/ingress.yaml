@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: livekit-server
+  namespace: livekit
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "true"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - livekit.livekit-demo.cloudportal.app
+      secretName: livekit-tls
+  rules:
+    - host: livekit.livekit-demo.cloudportal.app
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: livekit-livekit-server
+                port:
+                  number: 80
