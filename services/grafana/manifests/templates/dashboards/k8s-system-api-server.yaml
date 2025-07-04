@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: k8s-system-api-server
 spec:
+  folder: "Kubernetes"
   instanceSelector:
     labels:
       cluster_type: management

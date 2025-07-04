@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: dashboardnodeexporter
 spec:
+  folder: "Nodes"
   resyncPeriod: 3m
   instanceSelector:
     labels:

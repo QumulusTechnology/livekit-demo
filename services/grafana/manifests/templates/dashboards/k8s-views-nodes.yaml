@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: k8s-views-nodes
 spec:
+  folder: "Nodes"
   instanceSelector:
     labels:
       cluster_type: management
