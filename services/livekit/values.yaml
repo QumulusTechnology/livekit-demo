@@ -10,7 +10,7 @@ livekit:
     address: redis-redis-cluster.redis.svc.cluster.local:6379
     db: 0
   keys:
-    test: Test123123
+    test: ThisIsAVeryLongSecretKeyForLiveKitThatIsAtLeast32Characters
 
 # Ingress configuration
 ingress:

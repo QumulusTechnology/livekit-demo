@@ -43,12 +43,12 @@
   - LiveKit server: `livekit.livekit-demo.cloudportal.app`
   - LiveKit ingress: `ingress.livekit-demo.cloudportal.app`
   - Redis: `redis-redis-cluster.redis.svc.cluster.local:6379`
-  - API Key: `test` / Secret: `Test123123`
+  - API Key: `test` / Secret: `ThisIsAVeryLongSecretKeyForLiveKitThatIsAtLeast32Characters`
 - LiveKit ingress configuration format:
   ```yaml
   config:
     api_key: test
-    api_secret: Test123123
+    api_secret: ThisIsAVeryLongSecretKeyForLiveKitThatIsAtLeast32Characters
     ws_url: wss://livekit.livekit-demo.cloudportal.app
     redis:
       address: redis-redis-cluster.redis.svc.cluster.local:6379
