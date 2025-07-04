@@ -1,34 +1,56 @@
-replicaCount: 3
-
-imagePullSecrets: []
+replicaCount: 6
 
 livekit:
   rtc:
     tcp_port: 7881
     port_range_start: 50000
     port_range_end: 60000
-    use_external_ip: false
-  redis: {}
-  keys:
-    {}
+    use_external_ip: true
+  redis:
+    address: redis-redis-cluster.redis.svc.cluster.local:6379
+    db: 0
 
 # Set this option to true if you want to store your API keys in a secret instead of the config file
 storeKeysInSecret:
   enabled: true
-  existingSecret: ""
   keys:
     test: Test123123
 
-nameOverride: ""
-fullnameOverride: ""
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "true"
+  hosts:
+    - host: livekit.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: livekit-tls
+      hosts:
+        - livekit.livekit-demo.cloudportal.app
 
-loadBalancer:
-  type: disable
-  servicePort: 80
-  annotations: {}
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 6
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
 
-turnLoadbalancer:
-  enable: true
+# Resource allocation for high scale
+resources:
+  limits:
+    cpu: 8000m
+    memory: 16Gi
+  requests:
+    cpu: 4000m
+    memory: 8Gi
 
 podHostNetwork: true
 
