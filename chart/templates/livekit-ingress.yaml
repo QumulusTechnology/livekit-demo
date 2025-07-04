@@ -13,7 +13,7 @@ spec:
       ref: vals
 
     - repoURL: https://helm.livekit.io
-      targetRevision: 0.8.0
+      targetRevision: 1.2.2
       chart: ingress
       helm:
         valueFiles:
