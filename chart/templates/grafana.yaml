@@ -20,6 +20,14 @@ spec:
           - name: installCRDs
             value: "true"
 
+    - repoURL: https://cloudnative-pg.github.io/grafana-dashboards
+      targetRevision: v0.0.5
+      helm:
+        valuesObject:
+          grafanaDashboard:
+            annotations:
+              k8s-sidecar-target-directory: /var/lib/grafana/dashboards/CNPG
+
     - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
       targetRevision: main
       path: services/grafana/manifests

@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: k8s-loki-dashboard
 spec:
+  folder: "Loki"
   instanceSelector:
     labels:
       cluster_type: management

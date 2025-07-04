@@ -1,0 +1,10 @@
+apiVersion: grafana.integreatly.org/v1beta1
+kind: GrafanaDashboard
+metadata:
+  name: argocd-operational-grafana-dashboard
+spec:
+  folder: "ArgoCD"
+  instanceSelector:
+    labels:
+      cluster_type: management
+  url: "https://raw.githubusercontent.com/adinhodovic/argo-cd-mixin/refs/heads/main/dashboards_out/argo-cd-operational-overview.json"

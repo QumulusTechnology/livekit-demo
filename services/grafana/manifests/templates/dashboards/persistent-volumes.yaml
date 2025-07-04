@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: dashboardpv
 spec:
+  folder: "Kubernetes"
   resyncPeriod: 3m
   instanceSelector:
     labels:

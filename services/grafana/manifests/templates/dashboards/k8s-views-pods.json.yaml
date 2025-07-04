@@ -3,6 +3,7 @@ kind: GrafanaDashboard
 metadata:
   name: k8s-views-pods
 spec:
+  folder: "Kubernetes"
   instanceSelector:
     labels:
       cluster_type: management
