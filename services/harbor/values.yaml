@@ -1,0 +1,50 @@
+expose:
+  type: ingress
+  tls:
+    enabled: true
+    certSource: secret
+    secret:
+      secretName: "harbor-cert"
+  ingress:
+    hosts:
+      core: repo.{{ .Values.domain }}
+    controller: default
+    className: "nginx"
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      ingress.kubernetes.io/ssl-redirect: "true"
+      ingress.kubernetes.io/proxy-body-size: "0"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "7200"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "7200"
+      nginx.ingress.kubernetes.io/client-body-timeout: "7200"
+      nginx.ingress.kubernetes.io/client-header-timeout: "7200"
+      nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "7200"
+      nginx.ingress.kubernetes.io/keepalive: "7200"
+      nginx.ingress.kubernetes.io/proxy-body-size: "0"
+externalURL: https://repo.{{ .Values.domain }}
+existingSecretAdminPasswordKey: password
+existingSecretAdminPassword: harbor-auth
+registry:
+  replicas: 1
+core:
+  replicas: 1
+database:
+  type: external
+  external:
+    host: "harbor-db-rw.harbor.svc.cluster.local"
+    port: "5432"
+    coreDatabase: "harbor"
+    username: "harbor"
+    existingSecret: "harbor-db-app"
+    sslmode: "disable"
+persistence:
+  enabled: true
+  resourcePolicy: "keep"
+  persistentVolumeClaim:
+    registry:
+      size: 100Gi
+      accessMode: ReadWriteOnce
+updateStrategy:
+  type: Recreate

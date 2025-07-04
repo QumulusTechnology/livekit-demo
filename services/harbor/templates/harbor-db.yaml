@@ -1,0 +1,22 @@
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: harbor-db
+  namespace: harbor
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+spec:
+  instances: 3
+  enableSuperuserAccess: true
+  imageName: ghcr.io/cloudnative-pg/postgresql:15.2
+  bootstrap:
+    initdb:
+      database: harbor
+  storage:
+    size: 20Gi
+  walStorage:
+    size: 40Gi
+
+  monitoring:
+    enablePodMonitor: true
