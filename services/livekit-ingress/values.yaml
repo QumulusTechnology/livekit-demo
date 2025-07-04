@@ -1,15 +1,11 @@
 # LiveKit Ingress configuration
 replicaCount: 2
 
-config:
-  # API key for ingress to authenticate with LiveKit server
+# Direct configuration for livekit-ingress
+defaultConfig:
   api_key: test
   api_secret: Test123123
-  
-  # LiveKit server WebSocket URL
   ws_url: wss://livekit.livekit-demo.cloudportal.app
-  
-  # Redis configuration - same as LiveKit server
   redis:
     address: redis-redis-cluster.redis.svc.cluster.local:6379
     db: 0
