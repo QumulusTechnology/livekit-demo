@@ -1,0 +1,69 @@
+# LiveKit Ingress configuration
+replicaCount: 2
+
+config:
+  # API key for ingress to authenticate with LiveKit server
+  apiKey: test
+  apiSecret: Test123123
+  
+  # LiveKit server WebSocket URL
+  wsUrl: wss://livekit.livekit-demo.cloudportal.app
+  
+  # Redis configuration - same as LiveKit server
+  redis:
+    address: redis-redis-cluster.redis.svc.cluster.local:6379
+    db: 0
+
+# Kubernetes Ingress configuration for RTMP/WHIP endpoints
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "true"
+  hosts:
+    - host: ingress.livekit-demo.cloudportal.app
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: livekit-ingress-tls
+      hosts:
+        - ingress.livekit-demo.cloudportal.app
+
+# Autoscaling configuration
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+# Resource allocation
+resources:
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+
+# Service configuration for RTMP ingestion
+service:
+  rtmp:
+    enabled: true
+    type: LoadBalancer
+    port: 1935
+    annotations:
+      # Add any cloud provider specific annotations here if needed
+
+# Pod configuration
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "7888"
+  prometheus.io/path: "/metrics"
+
+# Service monitor for Prometheus
+serviceMonitor:
+  enabled: true
