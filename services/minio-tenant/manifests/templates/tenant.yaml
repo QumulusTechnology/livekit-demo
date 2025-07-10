@@ -4,7 +4,7 @@ metadata:
   name: tenant
   namespace: minio-tenant
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "3"
 spec:
   configuration:
     name: tenant-env-configuration

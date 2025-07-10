@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: livekit-livekit-server
+  name: livekit-server
 spec:
   template:
     spec:
