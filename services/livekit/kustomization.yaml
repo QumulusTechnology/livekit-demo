@@ -15,7 +15,7 @@ helmCharts:
 - name: redis-cluster
   repo: https://charts.bitnami.com/bitnami
   version: 11.0.7
-  releaseName: redis
+  releaseName: redis-cluster
   namespace: livekit
   valuesFile: redis-values.yaml
 

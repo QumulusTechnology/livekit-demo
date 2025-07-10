@@ -46,7 +46,7 @@ livekit:
     subscriber_bandwidth_limit: 25000000  # 25Mbps per subscriber for better scaling
   redis:
     # Use the main service endpoint for automatic load balancing
-    address: redis-redis-cluster.livekit.svc.cluster.local:6379
+    address: redis-cluster.livekit.svc.cluster.local:6379
     # Redis optimizations for high concurrency
     pool_size: 30  # Increased connection pool
     max_idle: 20  # More idle connections for burst traffic
