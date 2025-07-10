@@ -55,3 +55,7 @@ patches:
   target:
     kind: Deployment
     name: livekit-server
+- path: deployment-config-patch.yaml
+  target:
+    kind: Deployment
+    name: livekit-server

@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: livekit-server
+spec:
+  template:
+    spec:
+      volumes:
+      - name: config
+        configMap:
+          name: livekit-server
+          items:
+          - key: config.yaml
+            path: config.yaml
+      containers:
+      - name: livekit-server
+        args:
+        - --config=/etc/livekit-config/config.yaml
+        - --disable-strict-config
+        env:
+        # Remove LIVEKIT_CONFIG env var by setting it to null
+        - name: LIVEKIT_CONFIG
+          $patch: delete
+        volumeMounts:
+        - name: config
+          mountPath: /etc/livekit-config
+          readOnly: true

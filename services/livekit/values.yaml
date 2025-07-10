@@ -12,6 +12,9 @@ image:
 storeKeysInSecret:
   enabled: false
 
+# Disable config from env var - we use config file instead
+config: ""
+
 livekit:
   # API keys loaded from mounted file
   key_file: /etc/livekit/keys.yaml
