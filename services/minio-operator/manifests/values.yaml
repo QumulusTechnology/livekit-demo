@@ -5,3 +5,7 @@ domain: livekit-demo.cloudportal.app
 
 ingress:
   enabled: true
+
+# Trust tenant CA certificate
+trustTenantCA:
+  enabled: true
