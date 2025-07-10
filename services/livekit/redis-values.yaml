@@ -1,0 +1,82 @@
+# Redis Cluster configuration for LiveKit
+# Optimized for high performance and 1000+ concurrent connections
+
+# Use Redis Cluster mode
+architecture: replication
+auth:
+  enabled: false  # LiveKit doesn't support Redis auth in cluster mode
+
+cluster:
+  enabled: true
+  nodes: 6  # 3 masters + 3 replicas
+  replicas: 1
+
+redis:
+  resources:
+    requests:
+      memory: 2Gi
+      cpu: 500m
+    limits:
+      memory: 4Gi
+      cpu: 2000m
+  
+  # Performance optimizations
+  extraFlags:
+    - --maxclients 20000
+    - --tcp-backlog 1024
+    - --tcp-keepalive 60
+    - --timeout 0
+  
+  configuration: |
+    # Disable persistence for performance
+    save ""
+    appendonly no
+    
+    # Memory management
+    maxmemory-policy allkeys-lru
+    
+    # Performance tuning
+    lazyfree-lazy-eviction yes
+    lazyfree-lazy-expire yes
+    lazyfree-lazy-server-del yes
+    replica-lazy-flush yes
+    
+    # Network optimizations
+    tcp-backlog 1024
+    tcp-keepalive 60
+    
+    # Cluster settings
+    cluster-node-timeout 15000
+    cluster-require-full-coverage yes
+
+# Use anti-affinity to spread Redis nodes across different hosts
+podAntiAffinityPreset: hard
+
+# Enable metrics for monitoring
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
+# Persistence disabled for performance
+persistence:
+  enabled: false
+
+# Service configuration
+service:
+  type: ClusterIP
+  ports:
+    redis: 6379
+
+# Update strategy
+updateStrategy:
+  type: RollingUpdate
+
+# Pod disruption budget
+pdb:
+  create: true
+  minAvailable: 4  # At least 4 nodes should be available
+
+# Network policy
+networkPolicy:
+  enabled: false  # Allow all traffic from LiveKit services

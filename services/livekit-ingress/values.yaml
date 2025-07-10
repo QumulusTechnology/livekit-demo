@@ -28,10 +28,10 @@ ingress:
   rtc_config:
     use_external_ip: true
     udp_port: 7885
-  # Redis configuration - Using shared Redis cluster in livekit namespace
+  # Redis configuration - Using Bitnami Redis cluster in livekit namespace
   # No authentication required
   redis:
-    address: redis-cluster-svc.livekit.svc.cluster.local:6379
+    address: redis-redis-cluster.livekit.svc.cluster.local:6379
   # CPU cost configuration based on sample
   cpu_cost:
     rtmp_cpu_cost: 2.0

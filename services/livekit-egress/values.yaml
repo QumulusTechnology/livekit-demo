@@ -22,12 +22,15 @@ egress:
   # WebSocket URL - should be constructed as wss://livekit.<domain> but kept hardcoded for compatibility
   ws_url: wss://livekit.livekit-demo.cloudportal.app
   
-  # Redis configuration - Using shared Redis cluster in livekit namespace
+  # Redis configuration - Using Bitnami Redis cluster in livekit namespace
   redis:
     cluster_addresses:
-      - redis-cluster-0.redis-cluster.livekit.svc.cluster.local:6379
-      - redis-cluster-1.redis-cluster.livekit.svc.cluster.local:6379
-      - redis-cluster-2.redis-cluster.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-0.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-1.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-2.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-3.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-4.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-redis-cluster-5.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
     pool_size: 15
     max_idle: 8
     

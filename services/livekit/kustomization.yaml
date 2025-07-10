@@ -1,14 +1,23 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# Helm chart for LiveKit server
+# Helm charts
 helmCharts:
+# LiveKit server
 - name: livekit-server
   repo: https://helm.livekit.io
   version: 1.9.0
   releaseName: livekit
   namespace: livekit
   valuesFile: values.yaml
+
+# Redis Cluster for LiveKit
+- name: redis-cluster
+  repo: https://charts.bitnami.com/bitnami
+  version: 11.1.8
+  releaseName: redis
+  namespace: livekit
+  valuesFile: redis-values.yaml
 
 # Additional custom resources
 resources:
@@ -27,8 +36,6 @@ resources:
 - connection-optimizer.yaml
 # Jobs
 - node-tuning-job.yaml
-# Redis cluster for LiveKit services
-- redis-cluster.yaml
 
 # Patches to modify Helm-generated resources
 patches:
