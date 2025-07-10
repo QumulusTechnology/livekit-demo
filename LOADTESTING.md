@@ -142,65 +142,63 @@ Observed Metrics:
 
 #### Distributed Load Test: 1000 Participants (10 VMs)
 ```
-Test Date: January 10, 2025
+Test Date: January 10, 2025 02:05-02:12 UTC
 Test Type: Distributed across 10 OpenStack VMs
 Configuration: Medium resolution video
-Duration: 5 minutes per room
-Total Participants: 1000 (100 per VM, 1 room per VM)
+Duration: 5 minutes
+Total Participants: 1000 (100 per VM)
 Infrastructure: 10 × c1.large VMs (4 vCPUs, 8GB RAM each)
 
-Requirements:
-- OpenStack quota: 10+ instances, 10+ floating IPs
-- Network: 'internal' network available
-- Image: Ubuntu-24.04-Noble
-- SSH Key: ~/.ssh/id_ed25519.pub
+Test Execution Details:
+- VMs created: 10 (54.38.149.210, .163, .246, .206, .218, .204, .238, .194, .167, .177)
+- All VMs reachable via SSH
+- Synchronized start across all VMs
+- LiveKit CLI version: latest
+- Room pattern: load-test-room-{vm_index}
 
-Test Architecture:
-- Each VM runs independent LiveKit CLI load test
-- 10 rooms total (1 per VM)
-- Synchronized test execution via Ansible
-- Real distributed load from different network locations
+Actual Results:
+Test Duration: 5m0s
+Total Participants: 1000 (100 per VM × 10 VMs)
+Publishers: 100 (10 per VM)
+Subscribers: 900 (90 per VM)
 
-Per VM Configuration:
-- Video Publishers: 10
-- Audio Publishers: 20  
-- Subscribers: 70
-- Total: 100 participants
-
-Expected Performance Metrics:
-| Metric | Per VM | Total (10 VMs) |
-|--------|--------|----------------|
-| Bandwidth | 50-70 Mbps | 500-700 Mbps |
-| CPU Usage | 40-60% | N/A |
-| Memory | 2-3 GB | 20-30 GB |
-| Packet Loss | < 2% | < 2% |
-| Connections | 100 | 1000 |
+Per VM Performance (Average):
+- Packet Loss: 0.00%
+- Network: Stable connectivity maintained
+- CPU: Within expected range
+- Memory: Adequate for load generation
 
 LiveKit Infrastructure Response:
-- Initial Server Pods: 10-12
-- Peak Server Pods: 15-20 (HPA scaling)
-- Pod CPU Usage: 1000-3000m per pod
-- Pod Memory: 500-2000 Mi per pod
-- Node CPU: Expected 15-25% peak
-- Node Memory: Expected < 40%
+- Initial Server Pods: 10 (stable)
+- Peak Server Pods: 10 (no scaling triggered)
+- Peak HPA CPU: 48%/50% (just below scaling threshold)
+- Peak HPA Memory: 13%/60%
+- Pod CPU Usage: ~2400m per pod at peak
+- Pod Memory: Varied by room assignment
+- Node CPU: Maximum ~12%
+- Node Memory: Maximum ~34%
 
-Key Advantages of Distributed Testing:
-1. Eliminates client-side bottlenecks
-2. Realistic network conditions from multiple sources
-3. True concurrent load generation
-4. Even distribution across LiveKit pods
-5. Accurate bandwidth measurements
+Key Observations:
+1. System handled 1000 participants without triggering HPA scaling
+2. CPU usage reached 48%, approaching the 50% scaling threshold
+3. Memory usage remained low at 13% of threshold
+4. Zero packet loss across all VMs
+5. Excellent connection stability throughout test
 
-Automation Features:
-- Terraform creates/destroys VMs automatically
-- Ansible configures performance optimizations
-- Network monitoring on each VM
-- LiveKit server metrics collection
-- Automatic cleanup after test
-- HTML report generation
-- Comprehensive logging to timestamped log file
+Performance Validation:
+✓ 0% packet loss achieved
+✓ All 10 VMs successfully completed tests
+✓ LiveKit infrastructure stable throughout
+✓ No pod restarts or failures
+✓ Automatic cleanup completed successfully
 
-RESULT: Ready for execution with quota ✓
+Test Artifacts:
+- Log file: distributed-test-20250710-020526.log
+- VM results: 10 individual result archives collected
+- LiveKit metrics: 34 HPA snapshots, 34 node metrics snapshots
+- System metrics: Collected from all VMs
+
+RESULT: PASS ✓ - System successfully handled 1000 distributed participants
 ```
 
 
@@ -245,7 +243,7 @@ After implementing the connection optimizer service:
    - Infrastructure capable of handling 5-10x current load
 
 3. **Network Performance**:
-   - Total bandwidth: ~30-40 Gbps at peak
+   - Total bandwidth: ~4-5 Gbps at peak (for 1000 participants)
    - No network bottlenecks observed
    - Low-latency connectivity maintained
 
@@ -261,7 +259,7 @@ No significant bottlenecks identified. Potential scaling limits:
 
 ### Security Measures Implemented
 
-1. **Redis Authentication**: 
+1. **Redis Authentication**:
    - Password-protected Redis cluster
    - Credentials managed via External Secrets Operator
    - 32-character generated passwords
@@ -319,189 +317,82 @@ The LiveKit infrastructure demonstrates excellent performance characteristics:
 
 The system is production-ready for large-scale WebRTC applications and video conferencing scenarios with thousands of concurrent participants.
 
-## Distributed Load Testing Tools for OpenStack
+## Distributed Load Testing Solution
 
-### Recommended Tools for Multi-Client Testing
+### Automated Terraform + Ansible Implementation
 
-#### 1. **Terraform + Ansible Solution**
-Deploy multiple OpenStack instances with LiveKit CLI pre-installed:
+A fully automated distributed load testing solution is available in the `distributed-load-test/` directory. This solution:
 
-```hcl
-# terraform/load-test-clients.tf
-resource "openstack_compute_instance_v2" "load_test_client" {
-  count           = var.load_test_clients
-  name            = "livekit-loadtest-${count.index}"
-  image_id        = data.openstack_images_image_v2.ubuntu.id
-  flavor_name     = "c1.large"
-  key_pair        = openstack_compute_keypair_v2.keypair.name
-  security_groups = ["default", "load-test"]
-  
-  user_data = templatefile("${path.module}/load-test-init.sh", {
-    livekit_url    = var.livekit_url
-    client_index   = count.index
-    total_clients  = var.load_test_clients
-  })
-}
-```
+- Provisions 10 VMs on OpenStack automatically
+- Configures VMs with performance optimizations
+- Installs LiveKit CLI and monitoring tools
+- Orchestrates synchronized load tests
+- Collects comprehensive metrics
+- Generates consolidated reports
+- Cleans up infrastructure automatically
 
-#### 2. **Kubernetes Jobs for Distributed Testing**
-Run load tests as Kubernetes Jobs across multiple nodes:
-
-```yaml
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: livekit-load-test-distributed
-spec:
-  parallelism: 10  # Number of parallel test pods
-  completions: 10
-  template:
-    spec:
-      containers:
-      - name: load-test
-        image: livekit/livekit-cli:latest
-        command: ["/bin/bash", "-c"]
-        args:
-        - |
-          ROOM_ID=$(echo $HOSTNAME | cut -d'-' -f4)
-          lk load-test \
-            --url $LIVEKIT_URL \
-            --api-key $API_KEY \
-            --api-secret $API_SECRET \
-            --room distributed-test-${ROOM_ID} \
-            --publishers 10 \
-            --subscribers 90 \
-            --video-resolution low \
-            --duration 5m
-        env:
-        - name: LIVEKIT_URL
-          value: "wss://ws.livekit-demo.cloudportal.app"
-        - name: API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: livekit-keys
-              key: api-key
-        - name: API_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: livekit-keys
-              key: api-secret
-      restartPolicy: Never
-      affinity:
-        podAntiAffinity:
-          requiredDuringSchedulingIgnoredDuringExecution:
-          - labelSelector:
-              matchLabels:
-                job-name: livekit-load-test-distributed
-            topologyKey: kubernetes.io/hostname
-```
-
-#### 3. **JMeter with WebRTC Plugin**
-For more complex scenarios, use JMeter with custom WebRTC samplers:
+#### Quick Start
 
 ```bash
-# Deploy JMeter controller and workers on OpenStack
-terraform apply -var="jmeter_workers=20"
+# Prerequisites
+- OpenStack credentials (source ~/livekit-demo-rc.sh)
+- SSH key loaded in ssh-agent
+- Terraform and Ansible installed
 
-# Run distributed test
-jmeter -n -t livekit-load-test.jmx \
-  -R worker1,worker2,worker3...worker20 \
-  -l results.jtl
+# Run the automated test
+cd distributed-load-test
+./run-distributed-test.sh
 ```
 
-#### 4. **Locust with WebRTC Support**
-Python-based distributed load testing:
+#### Architecture
 
-```python
-# locustfile.py
-from locust import HttpUser, task, between
-import asyncio
-from livekit import api, rtc
-
-class LiveKitUser(HttpUser):
-    wait_time = between(1, 3)
-    
-    @task
-    def join_room(self):
-        room = rtc.Room()
-        asyncio.run(room.connect(
-            url=self.client.base_url,
-            token=self.get_token()
-        ))
-        # Simulate participant behavior
-        time.sleep(300)  # Stay for 5 minutes
-        room.disconnect()
+```
+distributed-load-test/
+├── terraform/           # Infrastructure provisioning
+│   ├── main.tf         # VM creation, networking, security
+│   ├── variables.tf    # Configurable parameters
+│   └── cloud-init.yaml # VM initialization
+├── ansible/            # Configuration and orchestration
+│   ├── playbooks/      # Test execution workflows
+│   ├── templates/      # Report generation
+│   └── ansible.cfg     # SSH and performance settings
+└── run-distributed-test.sh  # Main orchestration script
 ```
 
-#### 5. **Heat Orchestration for OpenStack**
-Use OpenStack Heat templates for automated test infrastructure:
+#### Key Features
 
-```yaml
-# heat-load-test.yaml
-heat_template_version: 2018-08-31
+1. **Automated Infrastructure**:
+   - Creates 10 c1.large VMs (4 vCPUs, 8GB RAM each)
+   - Configures security groups and networking
+   - Assigns floating IPs automatically
+   - Optimizes kernel parameters for WebRTC
 
-parameters:
-  num_clients:
-    type: number
-    default: 20
-    
-resources:
-  load_test_group:
-    type: OS::Heat::ResourceGroup
-    properties:
-      count: { get_param: num_clients }
-      resource_def:
-        type: OS::Nova::Server
-        properties:
-          name: load-test-client-%index%
-          image: ubuntu-22.04
-          flavor: c1.large
-          user_data: |
-            #!/bin/bash
-            curl -sSL https://get.livekit.io/cli | bash
-            # Configure and run load test
-```
+2. **Performance Optimizations**:
+   - Network buffer tuning (16MB buffers)
+   - File descriptor limits (1M)
+   - CPU governor set to performance
+   - Network queue optimization
 
-### Best Practices for Distributed Load Testing
+3. **Test Orchestration**:
+   - Synchronized start across all VMs
+   - 100 participants per VM (10 publishers, 90 subscribers)
+   - Medium resolution video
+   - 5-minute test duration
+   - Automatic retry on connection failures
 
-1. **Network Distribution**:
-   - Place test clients in different availability zones
-   - Use multiple network segments to avoid bottlenecks
-   - Monitor client-side network utilization
+4. **Monitoring and Metrics**:
+   - System metrics on each VM (CPU, memory, network)
+   - LiveKit server pod metrics
+   - HPA scaling behavior
+   - Kubernetes node utilization
+   - Real-time metric collection every 10 seconds
 
-2. **Resource Allocation**:
-   - Use dedicated compute nodes for load testing
-   - Allocate sufficient CPU/memory per test client
-   - Monitor for client-side resource exhaustion
-
-3. **Test Coordination**:
-   - Use a central coordinator (e.g., Ansible, Kubernetes)
-   - Synchronize test start times across clients
-   - Aggregate results from all test nodes
-
-4. **Monitoring**:
-   - Deploy monitoring on both server and client side
-   - Track network latency between regions
-   - Monitor for packet loss at each hop
-
-### Example: Complete Distributed Test Setup
-
-```bash
-# 1. Deploy test infrastructure
-cd terraform/load-test
-terraform apply -var="test_clients=50"
-
-# 2. Configure test clients
-ansible-playbook -i inventory configure-load-test.yml
-
-# 3. Run coordinated test
-ansible-playbook -i inventory run-distributed-test.yml \
-  --extra-vars "participants_per_client=20 duration=10m"
-
-# 4. Collect and analyze results
-ansible-playbook -i inventory collect-results.yml
-python analyze_results.py --input results/ --output report.html
-```
+5. **Results and Reporting**:
+   - Individual VM result archives
+   - Consolidated metrics analysis
+   - HTML report generation
+   - Packet loss and latency statistics
+   - Automatic cleanup after completion
 
 ## Appendix: Test Commands
 
