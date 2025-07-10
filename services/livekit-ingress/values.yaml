@@ -14,7 +14,7 @@ ingress:
     name: livekit-keys-file
     key: keys.yaml
   # Connection to LiveKit server
-  ws_url: ws://livekit-livekit-server.livekit.svc.cluster.local:7880
+  ws_url: ws://livekit-server.livekit.svc.cluster.local:7880
   # Logging configuration
   logging:
     level: info

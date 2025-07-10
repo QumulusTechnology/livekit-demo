@@ -10,7 +10,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
     # WebSocket specific annotations
-    nginx.ingress.kubernetes.io/websocket-services: livekit-livekit-server
+    nginx.ingress.kubernetes.io/websocket-services: livekit-server
     nginx.ingress.kubernetes.io/upstream-keepalive-connections: "50"
     nginx.ingress.kubernetes.io/upstream-keepalive-requests: "1000"
     nginx.ingress.kubernetes.io/upstream-keepalive-timeout: "60"

@@ -7,7 +7,7 @@ helmCharts:
 - name: livekit-server
   repo: https://helm.livekit.io
   version: 1.9.0
-  releaseName: livekit
+  releaseName: livekit-server
   namespace: livekit
   valuesFile: values.yaml
 
@@ -42,16 +42,16 @@ patches:
 - path: deployment-volumes-patch.yaml
   target:
     kind: Deployment
-    name: livekit-livekit-server
+    name: livekit-server
 - path: configmap-patch.yaml
   target:
     kind: ConfigMap
-    name: livekit-livekit-server
+    name: livekit-server
 - path: service-patch.yaml
   target:
     kind: Service
-    name: livekit-livekit-server
+    name: livekit-server
 - path: deployment-turn-patch.yaml
   target:
     kind: Deployment
-    name: livekit-livekit-server
+    name: livekit-server

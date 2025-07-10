@@ -19,7 +19,7 @@ data:
             keepalive_timeout 60s;
             
             # Let nginx discover all pod endpoints automatically
-            server livekit-livekit-server.livekit.svc.cluster.local:80 max_fails=2 fail_timeout=10s;
+            server livekit-server.livekit.svc.cluster.local:80 max_fails=2 fail_timeout=10s;
         }
         
         server {
