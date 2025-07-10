@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: livekit-livekit-server
+  name: livekit-server
 data:
   config.yaml: |
     development: false
@@ -10,12 +10,9 @@ data:
     log_level: error
     key_file: /etc/livekit/keys.yaml
     redis:
-      cluster_addresses:
-      - redis-cluster-0.redis-cluster.livekit.svc.cluster.local:6379
-      - redis-cluster-1.redis-cluster.livekit.svc.cluster.local:6379
-      - redis-cluster-2.redis-cluster.livekit.svc.cluster.local:6379
-      max_idle: 10
-      pool_size: 15
+      address: redis-cluster.livekit.svc.cluster.local:6379
+      max_idle: 20
+      pool_size: 30
     room:
       max_participants: 1000
       participant_timeout: 60s
