@@ -10,7 +10,13 @@ data:
     log_level: error
     key_file: /etc/livekit/keys.yaml
     redis:
-      address: redis-cluster.livekit.svc.cluster.local:6379
+      cluster_addresses:
+      - redis-cluster-0.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-1.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-2.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-3.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-4.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-5.redis-cluster-headless.livekit.svc.cluster.local:6379
       max_idle: 20
       pool_size: 30
     room:

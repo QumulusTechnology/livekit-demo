@@ -24,8 +24,14 @@ egress:
   
   # Redis configuration - Using Bitnami Redis cluster in livekit namespace
   redis:
-    # Use the main service endpoint for automatic load balancing
-    address: redis-cluster.livekit.svc.cluster.local:6379
+    # Redis cluster addresses - LiveKit requires individual node addresses for cluster mode
+    cluster_addresses:
+      - redis-cluster-0.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-1.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-2.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-3.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-4.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-5.redis-cluster-headless.livekit.svc.cluster.local:6379
     pool_size: 15
     max_idle: 8
     
