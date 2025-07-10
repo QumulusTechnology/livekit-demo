@@ -46,12 +46,12 @@ livekit:
     subscriber_bandwidth_limit: 25000000  # 25Mbps per subscriber for better scaling
   redis:
     cluster_addresses:
-      - redis-redis-cluster-0.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
-      - redis-redis-cluster-1.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
-      - redis-redis-cluster-2.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
-      - redis-redis-cluster-3.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
-      - redis-redis-cluster-4.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
-      - redis-redis-cluster-5.redis-redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-0.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-1.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-2.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-3.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-4.redis-cluster-headless.livekit.svc.cluster.local:6379
+      - redis-cluster-5.redis-cluster-headless.livekit.svc.cluster.local:6379
     # Redis optimizations for high concurrency
     pool_size: 30  # Increased connection pool
     max_idle: 20  # More idle connections for burst traffic

@@ -2,14 +2,12 @@
 # Optimized for high performance and 1000+ concurrent connections
 
 # Use Redis Cluster mode
-architecture: replication
+architecture: cluster
 auth:
   enabled: false  # LiveKit doesn't support Redis auth in cluster mode
 
 cluster:
-  enabled: true
-  nodes: 6  # 3 masters + 3 replicas
-  replicas: 1
+  nodes: 6  # Total number of nodes (masters + replicas)
 
 redis:
   resources:
