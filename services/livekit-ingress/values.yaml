@@ -31,7 +31,7 @@ ingress:
   # Redis configuration - Using Bitnami Redis cluster in livekit namespace
   # No authentication required
   redis:
-    address: redis-cluster.livekit.svc.cluster.local:6379
+    address: redis-redis-cluster.livekit.svc.cluster.local:6379
   # CPU cost configuration based on sample
   cpu_cost:
     rtmp_cpu_cost: 2.0
