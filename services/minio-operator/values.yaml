@@ -42,3 +42,7 @@ env:
     value: "on"
   - name: OPERATOR_STS_AUTO_TLS_ENABLED
     value: "off"
+
+# Trust tenant CA certificate
+trustTenantCA:
+  enabled: true

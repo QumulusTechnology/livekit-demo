@@ -1,0 +1,26 @@
+{{- if .Values.trustTenantCA.enabled }}
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: minio-tenant-ca
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  secretStoreRef:
+    name: minio-tenant-secrets-store
+    kind: ClusterSecretStore
+  target:
+    name: minio-tenant-ca-tls
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        ca.crt: "{{ `{{ .cacrt }}` }}"
+  data:
+  - secretKey: cacrt
+    remoteRef:
+      key: minio-tenant-ca-tls
+      property: ca.crt
+  refreshInterval: 1h
+{{- end }}
