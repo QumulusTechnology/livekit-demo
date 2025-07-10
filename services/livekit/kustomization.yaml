@@ -12,9 +12,9 @@ helmCharts:
   valuesFile: values.yaml
 
 # Redis Cluster for LiveKit
-- name: redis
+- name: redis-cluster
   repo: https://charts.bitnami.com/bitnami
-  version: 20.4.0
+  version: 11.0.7
   releaseName: redis
   namespace: livekit
   valuesFile: redis-values.yaml

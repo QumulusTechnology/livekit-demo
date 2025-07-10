@@ -1,13 +1,15 @@
 # Redis Cluster configuration for LiveKit
 # Optimized for high performance and 1000+ concurrent connections
 
-# Use Redis Cluster mode
-architecture: cluster
+# Disable authentication - LiveKit doesn't support Redis auth in cluster mode
+usePassword: false
 auth:
-  enabled: false  # LiveKit doesn't support Redis auth in cluster mode
+  enabled: false
 
+# Cluster configuration
 cluster:
-  nodes: 6  # Total number of nodes (masters + replicas)
+  nodes: 6  # Total nodes
+  replicas: 1  # Replicas per master (6 nodes = 3 masters + 3 replicas)
 
 redis:
   resources:
@@ -78,3 +80,6 @@ pdb:
 # Network policy
 networkPolicy:
   enabled: false  # Allow all traffic from LiveKit services
+
+# Volumemounts for custom config
+configmap: redis-cluster-default
