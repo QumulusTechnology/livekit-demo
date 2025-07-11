@@ -5,7 +5,7 @@ metadata:
   name: sts-cert
   namespace: minio-operator
   annotations:
-    argocd.argoproj.io/sync-wave: "2"
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   secretName: sts-tls
@@ -24,7 +24,7 @@ metadata:
   name: minio-operator-ca-issuer
   namespace: minio-operator
   annotations:
-    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-wave: "0"
     argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
 spec:
   ca:

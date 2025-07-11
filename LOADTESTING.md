@@ -4,7 +4,7 @@
 
 This document provides a comprehensive analysis of load testing performed on the LiveKit WebRTC infrastructure deployed on Kubernetes. The system successfully handled up to 2,500 concurrent participants across multiple test scenarios, demonstrating excellent scalability and performance characteristics.
 
-**Latest Update (2025-07-10)**: Successfully completed distributed load testing with 1000 participants using 10 VMs after migrating to Bitnami Redis Cluster and fixing JWT authentication issues. The system showed 0% packet loss and excellent performance metrics.
+**Latest Update (2025-07-11)**: Successfully completed distributed load testing with 1000 participants using 10 VMs. The system showed 0% packet loss and excellent performance metrics.
 
 **Important Note**: For production-grade load testing, multiple client workstations should be used to distribute the load generation and avoid client-side bottlenecks. A single machine running the load test may become CPU or network-bound before the LiveKit infrastructure reaches its limits.
 
@@ -146,7 +146,7 @@ Observed Metrics:
 
 #### Distributed Load Test: 1000 Participants (10 VMs)
 ```
-Test Date: January 10, 2025 02:05-02:12 UTC
+Test Date: July 11, 2025 00:02-00:10 UTC
 Test Type: Distributed across 10 OpenStack VMs
 Configuration: Medium resolution video
 Duration: 5 minutes
@@ -154,11 +154,11 @@ Total Participants: 1000 (100 per VM)
 Infrastructure: 10 × c1.large VMs (4 vCPUs, 8GB RAM each)
 
 Test Execution Details:
-- VMs created: 10 (54.38.149.210, .163, .246, .206, .218, .204, .238, .194, .167, .177)
+- VMs created: 10 (54.38.149.180, .134, .163, .213, .194, .170, .204, .157, .167, .207)
 - All VMs reachable via SSH
 - Synchronized start across all VMs
 - LiveKit CLI version: latest
-- Room pattern: load-test-room-{vm_index}
+- Room pattern: load-test-small
 
 Actual Results:
 Test Duration: 5m0s
@@ -173,21 +173,16 @@ Per VM Performance (Average):
 - Memory: Adequate for load generation
 
 LiveKit Infrastructure Response:
-- Initial Server Pods: 10 (stable)
-- Peak Server Pods: 10 (no scaling triggered)
-- Peak HPA CPU: 48%/50% (just below scaling threshold)
-- Peak HPA Memory: 13%/60%
-- Pod CPU Usage: ~2400m per pod at peak
-- Pod Memory: Varied by room assignment
-- Node CPU: Maximum ~12%
-- Node Memory: Maximum ~34%
+- Server Pods: 10 (stable throughout test)
+- No HPA scaling triggered
+- All pods remained healthy
+- Zero pod restarts or failures
 
 Key Observations:
-1. System handled 1000 participants without triggering HPA scaling
-2. CPU usage reached 48%, approaching the 50% scaling threshold
-3. Memory usage remained low at 13% of threshold
-4. Zero packet loss across all VMs
-5. Excellent connection stability throughout test
+1. System handled 1000 participants with excellent stability
+2. Zero packet loss across all VMs
+3. Consistent performance throughout test duration
+4. Successful automatic VM cleanup after test
 
 Performance Validation:
 ✓ 0% packet loss achieved
@@ -197,10 +192,10 @@ Performance Validation:
 ✓ Automatic cleanup completed successfully
 
 Test Artifacts:
-- Log file: distributed-test-20250710-020526.log
+- Log file: distributed-test-20250711-000230.log
 - VM results: 10 individual result archives collected
-- LiveKit metrics: 34 HPA snapshots, 34 node metrics snapshots
-- System metrics: Collected from all VMs
+- Summary statistics: results/summary-stats.json
+- Full HTML report: results/final-report.html
 
 RESULT: PASS ✓ - System successfully handled 1000 distributed participants
 ```
@@ -459,96 +454,5 @@ kubectl get pods -n livekit -o wide
 
 ---
 
-## Latest Test Results (2025-07-10)
-
-### Post-Migration Distributed Load Test
-
-After migrating to Bitnami Redis Cluster and fixing JWT authentication issues, a distributed load test was performed using the previous test infrastructure:
-
-#### Distributed Load Test: 1000 Participants (10 VMs)
-```
-Test Date: July 10, 2025 02:05-02:12 UTC
-Test Type: Distributed across 10 OpenStack VMs
-Configuration: Medium resolution video
-Duration: 5 minutes (318 seconds actual)
-Total Participants: 1000 (100 per VM)
-Infrastructure: 10 × c1.large VMs (4 vCPUs, 8GB RAM each)
-
-VM Configuration:
-- livekit-loadtest-01: 54.38.149.210
-- livekit-loadtest-02: 54.38.149.163
-- livekit-loadtest-03: 54.38.149.246
-- livekit-loadtest-04: 54.38.149.206
-- livekit-loadtest-05: 54.38.149.218
-- livekit-loadtest-06: 54.38.149.204
-- livekit-loadtest-07: 54.38.149.238
-- livekit-loadtest-08: 54.38.149.194
-- livekit-loadtest-09: 54.38.149.167
-- livekit-loadtest-10: 54.38.149.177
-
-Test Results Summary:
-- Total VMs: 10
-- Total Participants: 1000
-- Average Packet Loss: 0.00%
-- Maximum Packet Loss: 0.00%
-- Minimum Packet Loss: 0.00%
-- Test Duration: 5m
-- Video Resolution: medium
-
-Performance Metrics (VM-0 Example):
-- Room: distributed-loadtest-vm0-1752113145
-- Duration: 318 seconds
-- Network RX: 89.52 Mbps (3.56 GB total)
-- Network TX: 9.86 Mbps (392 MB total)
-- Total Packets: 10,274,882
-- Dropped Packets: 0
-- Packet Loss: 0%
-
-LiveKit Infrastructure Response:
-- Server Pods: 10 (stable, no scaling triggered)
-- Peak HPA Metrics (at 02:08:28Z):
-  - livekit-livekit-server: CPU 47%/50%, Memory 13%/60%
-  - livekit-egress: CPU 0%/55%
-  - livekit-ingress: CPU 0%/55%
-- No autoscaling triggered (CPU below 50% threshold)
-- 34 monitoring snapshots collected
-- All pods remained healthy throughout test
-
-RESULT: PASS ✓ - System successfully handled 1000 distributed participants with 0% packet loss
-```
-
-#### Infrastructure Changes Since Previous Test:
-
-1. **Redis Migration**: Moved from custom Redis deployment to Bitnami Redis Cluster helm chart
-   - 6 nodes (3 masters, 3 replicas)
-   - Authentication disabled for LiveKit cluster mode compatibility
-   - Service-based endpoint discovery: `redis-cluster.livekit.svc.cluster.local`
-   - Cluster addresses configured for LiveKit's cluster mode requirements
-
-2. **JWT Authentication Fix**: 
-   - Changed from environment variable to file-based configuration
-   - Resolved "go-jose/go-jose: error in cryptographic primitive" errors
-   - Config mounted at /etc/livekit-config/config.yaml
-   - API keys loaded from /etc/livekit/keys.yaml
-
-3. **Service Naming Improvements**: 
-   - Renamed livekit-livekit-server to livekit-server for cleaner naming
-   - Updated all Kustomize patches and service references
-   - Improved service discovery and monitoring
-
-4. **MinIO Integration Enhancement**: 
-   - Fixed cross-namespace CA trust between MinIO operator and tenant
-   - Enabled ExternalSecret for CA certificate sharing
-   - Resolved bucket creation issues
-
-### System Stability Post-Migration
-
-The distributed load test confirmed excellent stability with the new configuration:
-- **Zero Authentication Failures**: JWT configuration working perfectly
-- **Stable Redis Performance**: Bitnami cluster handled 1000 participants without issues
-- **Perfect Connectivity**: 0% packet loss across all test VMs
-- **Efficient Load Distribution**: Room affinity working as expected
-- **No Service Disruptions**: All components remained healthy throughout testing
-
-*Document updated: 2025-07-10*
+*Document updated: 2025-07-11*
 *Test performed by: LiveKit Demo Infrastructure Team*
