@@ -26,8 +26,9 @@ spec:
       helm:
         valuesObject:
           grafanaDashboard:
-            annotations:
-              k8s-sidecar-target-directory: /var/lib/grafana/dashboards/CNPG
+            labels:
+              grafana_dashboard: "1"
+              grafana_folder: "CNPG"
 
     - repoURL: https://github.com/QumulusTechnology/livekit-demo.git
       targetRevision: main
